@@ -1,6 +1,7 @@
 # Copyright (c) 2026 GANOMABI / amiinarii.
 """Exercise the real Tk UI in both languages without opening FiveM or making network requests."""
 import os
+import traceback
 from pathlib import Path
 import tempfile
 import customtkinter as ctk
@@ -35,10 +36,10 @@ def automated_loop(self):
             self.latest_release = {'version':'99.0.0'}
             self.set_update_status('Update tersedia: v99.0.0')
             self.update_idletasks()
-            assert self.update_banner.winfo_viewable()
+            assert self.update_banner.winfo_viewable(), "global update banner hidden"
             self.show_update_notice(release=self.latest_release)
             self.update()
-            assert self.update_dialog.winfo_viewable()
+            assert self.update_dialog.winfo_viewable(), "update dialog not mapped yet"
             assert not self.update_dialog.overrideredirect()
             self.update_dialog.grab_release()
             self.update_dialog.destroy()
@@ -47,11 +48,11 @@ def automated_loop(self):
             assert self.nav['servers'].cget('text')=='Server list'
             assert self.page=='servers'
             self.update_idletasks()
-            assert self.update_banner.winfo_viewable()
+            assert self.update_banner.winfo_viewable(), "global update banner hidden"
             self.results.append(('update_progress', .5))
             self.poll()
             self.update_idletasks()
-            assert self.global_update_progress.winfo_viewable()
+            assert self.global_update_progress.winfo_viewable(), "global download progress hidden"
             assert self.global_update_progress.get()==.5
             assert len(self.catalog['servers'])>=5
             self.server_statuses = {self.catalog['servers'][0]['join_code']: {'available':True,'clients':123,'maximum':2048,'description':'Official description','checked':'12:00:00'}}
@@ -60,7 +61,9 @@ def automated_loop(self):
             assert self.nav['servers'].cget('text')=='Daftar server'
             self.show_page('tools')
             self.update_idletasks()
-        except Exception as exc: errors.append(exc)
+        except Exception as exc:
+            traceback.print_exc()
+            errors.append(exc)
         finally: self.after(500,self.close)
     self.after(1800,verify)
     self.after(10000,self.close)
