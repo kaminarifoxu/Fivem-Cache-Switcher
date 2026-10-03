@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-10-03",
+  "servers": [
+    {
+      "id": "ime",
+      "name": "iMe RP",
+      "join_code": "zrvmg4",
+      "description": {
+        "id": "Komunitas roleplay Indonesia. Periksa ketentuan bergabung pada komunitas server.",
+        "en": "Indonesian roleplay community. Check the community joining requirements."
+      },
+      "source_url": "https://cfx.re/join/zrvmg4"
+    },
+    {
+      "id": "satu-mimpi",
+      "name": "Satu Mimpi",
+      "join_code": "6gk4e4",
+      "description": {
+        "id": "Komunitas roleplay Indonesia. Periksa ketentuan bergabung pada komunitas server.",
+        "en": "Indonesian roleplay community. Check the community joining requirements."
+      },
+      "source_url": "https://cfx.re/join/6gk4e4"
+    },
+    {
+      "id": "indopride",
+      "name": "Indopride Roleplay",
+      "join_code": "bak4pl",
+      "description": {
+        "id": "Komunitas roleplay Indonesia. Periksa ketentuan bergabung pada komunitas server.",
+        "en": "Indonesian roleplay community. Check the community joining requirements."
+      },
+      "source_url": "https://cfx.re/join/bak4pl"
+    },
+    {
+      "id": "garuda-prime",
+      "name": "Garuda Prime Roleplay",
+      "join_code": "vgaqm5",
+      "description": {
+        "id": "Komunitas roleplay Indonesia. Periksa ketentuan bergabung pada komunitas server.",
+        "en": "Indonesian roleplay community. Check the community joining requirements."
+      },
+      "source_url": "https://cfx.re/join/vgaqm5"
+    },
+    {
+      "id": "seven-glory",
+      "name": "Seven Glory Roleplay",
+      "join_code": "bjyd8b",
+      "description": {
+        "id": "Komunitas roleplay Indonesia. Periksa ketentuan bergabung pada komunitas server.",
+        "en": "Indonesian roleplay community. Check the community joining requirements."
+      },
+      "source_url": "https://cfx.re/join/bjyd8b"
+    }
+  ]
+}

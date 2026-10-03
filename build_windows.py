@@ -23,7 +23,7 @@ def build():
         "VarFileInfo([VarStruct('Translation', [1033, 1200])])])", encoding="utf-8")
     PyInstaller.__main__.run([
         "--noconfirm", "--clean", "--onefile", "--windowed", "--collect-all", "customtkinter",
-        "--add-data", str(root / "assets") + ";assets", "--icon", str(root / "assets" / "ganomabi.ico"),
+        "--add-data", str(root / "assets") + ";assets", "--add-data", str(root / "servers.json") + ";.", "--icon", str(root / "assets" / "ganomabi.ico"),
         "--version-file", str(metadata), "--name", APP_NAME, str(root / "cache_switcher.py"),
     ])
 
