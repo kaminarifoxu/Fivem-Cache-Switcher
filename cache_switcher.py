@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.2"
+VERSION = "2.7.3"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -695,7 +695,7 @@ def main():
                 self.after(1000, self.periodic_status)
 
         def change_language(self, choice):
-            if self.busy or self.update_installing or self.grab_current() is not None:
+            if self.busy or self.update_installing or self.grab_current() is not None or (self.update_dialog is not None and self.update_dialog.winfo_exists()):
                 self.language_selector.set('English' if i18n.LANGUAGE == 'en' else 'Indonesia')
                 return
             page = self.page
@@ -1121,23 +1121,17 @@ def main():
             if self.closed:
                 return
             if self.update_dialog is not None and self.update_dialog.winfo_exists():
-                self.update_dialog.deiconify()
+                self.update_dialog.place(relx=0.5, rely=0.5, anchor='center')
                 self.update_dialog.lift()
                 self.update_dialog.focus_force()
                 return
             if self.busy or self.grab_current() is not None:
                 self.after(500, lambda: self.show_update_notice(release, error))
                 return
-            dialog = self.update_dialog = ctk.CTkToplevel(self)
-            dialog.withdraw()
-            dialog.title(tr('Pembaruan | ') + APP_NAME)
-            dialog.configure(fg_color=BG)
-            dialog.resizable(False, False)
-            dialog.transient(self)
-            scale = ctk.ScalingTracker.get_window_scaling(dialog)
-            x = self.winfo_rootx() + (self.winfo_width() - round(540 * scale)) // 2
-            y = self.winfo_rooty() + (self.winfo_height() - round(540 * scale)) // 2
-            dialog.geometry(f'540x650+{max(0, x)}+{max(0, y)}')
+            dialog = self.update_dialog = ctk.CTkFrame(self, width=540, height=650, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=12)
+            dialog.pack_propagate(False)
+            dialog.place(relx=0.5, rely=0.5, anchor='center')
+            dialog.lift()
 
             def close(event=None):
                 if self.update_installing:
@@ -1147,7 +1141,6 @@ def main():
                         dialog.grab_release()
                     dialog.destroy()
                 self.update_dialog = None
-            dialog.protocol('WM_DELETE_WINDOW', close)
             dialog.bind('<Escape>', close)
             shell = ctk.CTkFrame(dialog, fg_color=CARD, border_color=app_theme.color('#79523c'), border_width=1, corner_radius=0)
             shell.pack(fill='both', expand=True)
@@ -1157,17 +1150,6 @@ def main():
             brand = ctk.CTkLabel(header, text=tr('GANOMABI  /  PEMBARUAN'), text_color=GOLD, font=(FONT, 11, 'bold'))
             brand.pack(side='left', padx=22)
             ctk.CTkButton(header, text='×', width=36, height=30, corner_radius=6, fg_color='transparent', hover_color=RED, text_color=MUTED, font=(FONT, 22), command=close).pack(side='right', padx=10)
-            drag = {}
-
-            def start_drag(event):
-                drag.update(x=event.x_root - dialog.winfo_x(), y=event.y_root - dialog.winfo_y())
-
-            def move_drag(event):
-                if drag:
-                    dialog.geometry(f"+{max(0, event.x_root - drag['x'])}+{max(0, event.y_root - drag['y'])}")
-            for widget in (header, brand):
-                widget.bind('<ButtonPress-1>', start_drag)
-                widget.bind('<B1-Motion>', move_drag)
             ctk.CTkFrame(shell, height=2, fg_color=RED, corner_radius=0).pack(fill='x', padx=1)
             head = ctk.CTkFrame(shell, fg_color='transparent')
             head.pack(fill='x', padx=26, pady=(18, 10))
@@ -1243,19 +1225,9 @@ def main():
                 ctk.CTkButton(row, text=tr('Nanti') if release else tr('Tutup'), command=close, width=120, height=42, fg_color=app_theme.color('#f1e3cc'), hover_color=app_theme.color('#e6d0aa'), text_color=WHITE, border_color=LINE, border_width=1, corner_radius=6, font=(FONT, 12)).pack(side='right', padx=(0, 10))
             dialog.bind('<Return>', lambda event: action())
 
-            def present():
-                if not dialog.winfo_exists():
-                    return
-                dialog.deiconify()
-                dialog.lift()
-                dialog.attributes('-topmost', True)
-                primary.focus_set()
-
-                def release_topmost():
-                    if dialog.winfo_exists():
-                        dialog.attributes('-topmost', False)
-                dialog.after(500, release_topmost)
-            dialog.after(250, present)
+            self.start_update_button = primary
+            dialog.lift()
+            primary.focus_set()
 
         def finish_update_error(self, error):
             self.update_installing = False

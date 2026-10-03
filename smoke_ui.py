@@ -60,21 +60,18 @@ def automated_loop(self):
             self.set_update_status('Update tersedia: v99.0.0')
             self.update_idletasks()
             assert self.update_banner.winfo_viewable(), "global update banner hidden"
-            self.show_update_notice(release=self.latest_release)
-            timeout = self.after(3000, lambda: self.update_dialog.destroy() if self.update_dialog and not self.update_dialog.winfo_viewable() else None)
-            self.update_dialog.wait_visibility()
-            self.after_cancel(timeout)
-            assert self.update_dialog.winfo_viewable(), "update dialog not mapped yet"
-            assert not self.update_dialog.overrideredirect()
+            self.global_update_button.invoke()
+            self.update_idletasks()
+            assert isinstance(self.update_dialog, ctk.CTkFrame)
+            assert self.update_dialog.winfo_viewable(), 'inline update panel hidden'
             assert self.grab_current() is None
             assert 'Update button fix' in self.release_summary_label.cget('text')
-            self.update_dialog.withdraw()
+            self.update_dialog.place_forget()
             self.show_page('tools')
             self.check_update_button.invoke()
             self.update_idletasks()
-            assert self.update_dialog.state() != 'withdrawn'
+            assert self.update_dialog.winfo_viewable()
             self.show_page('servers')
-            self.update_dialog.grab_release()
             self.update_dialog.destroy()
             self.update_dialog=None
             self.change_language('English')
@@ -93,6 +90,24 @@ def automated_loop(self):
             self.change_language('Indonesia')
             assert self.nav['servers'].cget('text')=='Daftar server'
             self.show_page('tools')
+            self.update_idletasks()
+            from unittest.mock import patch
+            import threading
+            invoked=threading.Event()
+            def failed_download(*args):
+                invoked.set()
+                raise OSError('Controlled offline test')
+            self.global_update_button.invoke()
+            with patch.object(cache_switcher.sys, 'frozen', True, create=True), patch('auto_updater.download_update', side_effect=failed_download):
+                self.start_update_button.invoke()
+                assert invoked.wait(3), 'download handler did not start'
+                assert self.update_installing
+            import time
+            deadline=time.monotonic()+3
+            while not any(kind=='update_failed' for kind, _ in self.results) and time.monotonic()<deadline:
+                time.sleep(.01)
+            self.poll()
+            assert not self.update_installing
             self.update_idletasks()
         except Exception as exc:
             traceback.print_exc()
