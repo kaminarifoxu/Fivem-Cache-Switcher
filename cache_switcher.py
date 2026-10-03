@@ -9,12 +9,34 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.3.0"
+VERSION = "2.3.1"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
 GITHUB_REPOSITORY = "kaminarifoxu/Fivem-Cache-Switcher"
 RELEASES_URL = "https://github.com/" + GITHUB_REPOSITORY + "/releases"
+
+
+def user_config_path():
+    root = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    directory = os.path.join(root, APP_NAME)
+    os.makedirs(directory, exist_ok=True)
+    return os.path.join(directory, "remake_config.json")
+
+
+def open_user_store(legacy_directory):
+    target = user_config_path()
+    if os.path.isfile(target):
+        return CacheStore(target)
+    for name in ("remake_config.json", "config.json"):
+        legacy = os.path.join(legacy_directory, name)
+        if os.path.isfile(legacy):
+            store = CacheStore(legacy)
+            store.config_path = target
+            if not store.load_warning:
+                store.save()
+            return store
+    return CacheStore(target)
 
 
 def stable_version(tag):
@@ -535,7 +557,7 @@ def main():
                 self.splash_status.configure(text="Membaca konfigurasi dan lokasi FiveM...")
                 self.splash_progress.set(0.25)
                 self.update_idletasks()
-                self.store = CacheStore(os.path.join(base, "remake_config.json"))
+                self.store = open_user_store(base)
                 self.splash_status.configure(text="Menyiapkan profil kota dan tampilan...")
                 self.splash_progress.set(0.55)
                 self.update_idletasks()
@@ -794,7 +816,7 @@ def main():
             card.pack(fill="both", expand=True, padx=12, pady=12)
             ctk.CTkLabel(card, text=APP_NAME, text_color=GOLD, font=(FONT, 13, "bold")).pack(pady=(24, 8))
             ctk.CTkLabel(card, text="Update tersedia: v" + release["version"], text_color=WHITE, font=(FONT, 22, "bold")).pack(pady=4)
-            ctk.CTkLabel(card, text="Versi terpasang: v" + VERSION + "\nUnduh EXE terbaru melalui GitHub Releases.\nTutup aplikasi, lalu ganti EXE lama.\nSimpan remake_config.json agar profil tetap tersedia.",
+            ctk.CTkLabel(card, text="Versi terpasang: v" + VERSION + "\nUnduh EXE terbaru melalui GitHub Releases.\nTutup aplikasi, lalu ganti EXE lama.\nPengaturan tersimpan otomatis dan tetap tersedia setelah update.",
                          text_color=MUTED, font=(FONT, 12), wraplength=450).pack(padx=20, pady=16)
             row = ctk.CTkFrame(card, fg_color="transparent")
             row.pack(pady=(0, 18))

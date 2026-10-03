@@ -1,4 +1,4 @@
-# GanoV-Cache-Switch v2.3.0
+# GanoV-Cache-Switch v2.3.1
 
 **Copyright (c) 2026 GANOMABI / amiinarii.**
 
@@ -8,20 +8,20 @@ Windows 10/11 64-bit. Tema hitam, merah, dan emas dengan logo GANOMABI dan masko
 
 ## Cara memakai
 
-1. Unduh [GanoV-Cache-Switch.exe](https://github.com/kaminarifoxu/Fivem-Cache-Switcher/raw/refs/heads/main/GanoV-Cache-Switch.exe) dan simpan di folder yang dapat ditulis.
+1. Unduh EXE dari [rilis terbaru](https://github.com/kaminarifoxu/Fivem-Cache-Switcher/releases/latest) dan simpan di folder yang dapat ditulis.
 2. Jalankan **GanoV-Cache-Switch.exe**.
 3. Klik **Pilih FiveM.exe** dan pilih launcher instalasi FiveM kamu.
 4. Aplikasi mendeteksi folder data dan menampilkan backup kota yang sudah ada.
 5. Tutup FiveM, pilih profil, lalu klik **Aktifkan**.
 6. Klik **Jalankan FiveM** untuk membuka launcher yang dipilih.
 
-EXE dapat dijalankan sendiri. Python dan file PNG terpisah tidak diperlukan; semua gambar dan ikon UI dibundel dalam EXE. File remake_config.json dibuat untuk menyimpan pengaturan.
+EXE dapat dijalankan sendiri. Python dan file PNG terpisah tidak diperlukan; semua gambar dan ikon UI dibundel dalam EXE. Pengaturan disimpan otomatis di `%LOCALAPPDATA%\GanoV-Cache-Switch\remake_config.json`, terpisah dari folder EXE. Cukup bagikan EXE kepada teman.
 
 ## Notifikasi update
 
 Saat dibuka, aplikasi mengecek rilis stabil terbaru dari GitHub di latar belakang. Jika ada versi lebih baru, muncul dialog **Update tersedia** dengan tombol **Unduh update** dan **Nanti**. Tombol **Cek update** di sidebar dapat dipakai kapan saja. Jika internet tidak tersedia, aplikasi tetap berfungsi.
 
-**Unduh update** membuka halaman rilis di browser. Unduh EXE, tutup aplikasi, lalu ganti EXE lama. Simpan remake_config.json di folder EXE untuk mempertahankan profil. Pembaruan tidak mengganti EXE secara otomatis.
+**Unduh update** membuka halaman rilis di browser. Unduh EXE, tutup aplikasi, lalu ganti EXE lama. Pengaturan tetap tersedia saat EXE diganti atau dipindahkan. Pembaruan tidak mengganti EXE secara otomatis.
 
 ### Menerbitkan pembaruan berikutnya
 
@@ -32,7 +32,7 @@ Saat dibuka, aplikasi mengecek rilis stabil terbaru dari GitHub di latar belakan
        git tag v2.4.0
        git push origin v2.4.0
 
-GitHub Actions menjalankan tes, membangun EXE Windows dengan logo/copyright GANOMABI, lalu menerbitkan GitHub Release beserta EXE. Tag harus sama dengan VERSION. Commit source saja belum memicu notifikasi; rilis baru harus sudah terbit. Instal EXE v2.3.0 ini terlebih dahulu untuk menerima notifikasi berikutnya.
+GitHub Actions menjalankan tes, membangun EXE Windows dengan logo/copyright GANOMABI, lalu menerbitkan GitHub Release beserta EXE. Tag harus sama dengan VERSION. Push ke main juga membangun dan menerbitkan rilis jika VERSION belum pernah dirilis. Notifikasi muncul setelah rilis baru terbit. Instal EXE v2.3.1 ini terlebih dahulu untuk menerima notifikasi berikutnya.
 
 ## Deteksi lokasi
 
@@ -56,7 +56,7 @@ Backup yang ditemukan muncul dengan nama dari ID folder, misalnya Kota A. Nama d
 
 ## Memakai konfigurasi lama
 
-Untuk mempertahankan nama dan identitas profil, salin remake_config.json dari versi sebelumnya ke folder EXE baru. Jika belum ada file tersebut, aplikasi juga bisa membaca config.json milik program original.
+Pada pemakaian pertama, letakkan EXE baru di folder EXE lama. Aplikasi mengimpor remake_config.json (atau config.json original) ke lokasi pengaturan otomatis. File lama tetap tersedia sebagai cadangan. Setelah impor berhasil, file JSON tidak perlu ikut dibagikan atau dipindahkan bersama EXE. Pengaturan disimpan per akun Windows, bukan ditulis ke dalam EXE.
 
 Konfigurasi menyimpan lokasi FiveM.exe, lokasi data, nama profil, dan profil aktif. Pemilihan ulang FiveM.exe pada instalasi yang sama mempertahankan nama profil. Memilih instalasi lain menampilkan backup instalasi itu; cache instalasi sebelumnya tetap di tempatnya.
 
