@@ -13,7 +13,7 @@ Pengelola profil cache FiveM untuk Windows 10/11 64-bit.
 
 Cukup satu EXE; tidak perlu Python atau aset terpisah. Pengaturan disimpan otomatis di `%LOCALAPPDATA%\GanoV-Cache-Switch`.
 
-Pilih **Indonesia / English** di sidebar. Gunakan **Daftar server → Hubungkan** untuk membuka koneksi FiveM. Daftar server disinkronkan otomatis dari GitHub. [Cara mengubah daftar](SERVER_LIST.md).
+Pilih **Indonesia / English** di **Peralatan**. Gunakan **Daftar server → Hubungkan** untuk membuka koneksi FiveM. Daftar server disinkronkan otomatis dari GitHub. [Cara mengubah daftar](SERVER_LIST.md).
 
 ## Update
 
@@ -24,3 +24,5 @@ Versi sebelum 2.4.2 perlu diganti manual sekali karena perbaikan restart update.
 Lihat [riwayat perubahan](https://github.com/kaminarifoxu/Fivem-Cache-Switcher/releases).
 
 **Copyright © 2026 GANOMABI / amiinarii.** Lihat [COPYRIGHT.md](COPYRIGHT.md).
+
+Untuk mengedit kode: [panduan struktur dan build](docs/DEVELOPMENT.md).

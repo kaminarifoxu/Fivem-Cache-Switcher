@@ -6,9 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location("app", os.path.join(os.path.dirname(__file__), "cache_switcher.py"))
-app = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(app)
+import ganov.core as app
 
 
 class CacheTests(unittest.TestCase):
@@ -65,10 +63,12 @@ class CacheTests(unittest.TestCase):
         a, b = self.profiles()
         self.store.switch(a)
         real_rename = os.rename
+
         def fail_once(src, dst):
             if src == self.store.backup(b) and dst == self.store.active:
                 raise PermissionError("locked")
             return real_rename(src, dst)
+
         with patch.object(os, "rename", side_effect=fail_once):
             with self.assertRaises(PermissionError):
                 self.store.switch(b)
@@ -82,7 +82,9 @@ class CacheTests(unittest.TestCase):
         self.store.switch(a)
         for stage in [0, 1, 2, 3]:
             before = self.store.snapshot()
-            app.atomic_json(self.store.journal, {"old": a, "target": b, "before": before})
+            app.atomic_json(
+                self.store.journal, {"old": a, "target": b, "before": before}
+            )
             if stage >= 1:
                 os.rename(self.store.active, self.store.backup(a))
             if stage >= 2:
@@ -137,7 +139,9 @@ class CacheTests(unittest.TestCase):
         a, b = self.profiles()
         self.store.switch(a)
         with open(os.path.join(self.root, "config.json"), "w") as f:
-            json.dump({"fivem_path": self.store.path, "profiles": self.store.profiles}, f)
+            json.dump(
+                {"fivem_path": self.store.path, "profiles": self.store.profiles}, f
+            )
         os.remove(self.store.config_path)
         imported = app.CacheStore(self.store.config_path)
         self.assertEqual(imported.detect(), a)
@@ -203,7 +207,10 @@ class CacheTests(unittest.TestCase):
             f.write(b"test")
         with self.assertRaises(RuntimeError):
             app.find_data_directories(wrong)
-        self.assertEqual(app.find_data_directories(os.path.join(self.root, "FiveM.exe")), [self.store.data_dir])
+        self.assertEqual(
+            app.find_data_directories(os.path.join(self.root, "FiveM.exe")),
+            [self.store.data_dir],
+        )
 
     def test_process_guard_blocks_mutation(self):
         a, b = self.profiles()
@@ -215,9 +222,13 @@ class CacheTests(unittest.TestCase):
 
     def test_process_detection_ignores_own_exe_and_blocks_game(self):
         self.process_patch.stop()
+
         class Result:
             stdout = '"FiveM-Cache-Switcher-Remake.exe","123","Console"\n'
-        with patch.object(app.os, "name", "nt"), patch.object(app.subprocess, "run", return_value=Result()):
+
+        with patch.object(app.os, "name", "nt"), patch.object(
+            app.subprocess, "run", return_value=Result()
+        ):
             app.no_fivem()
             Result.stdout += '"FiveM_b3258_GTAProcess.exe","456","Console"\n'
             with self.assertRaises(RuntimeError):
