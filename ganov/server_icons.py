@@ -41,7 +41,7 @@ def load_icon(code, version, cache):
                 f"https://frontend.cfx-services.net/api/servers/icon/{code}/{version}.png",
                 headers={"User-Agent": "GanoV-Cache-Switch"},
             )
-            with urlopen(request, timeout=5) as response:
+            with urlopen(request, timeout=12) as response:
                 raw = response.read(MAX_BYTES + 1)
             image = decode_icon(raw)
             try:
