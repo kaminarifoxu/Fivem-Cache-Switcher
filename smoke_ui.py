@@ -33,6 +33,16 @@ def automated_loop(self):
             assert 'Cek update' not in labels(self.sidebar)
             assert 'List server' in labels(self.pages['servers'])
             self.show_page('servers')
+            assert not isinstance(self.server_list, ctk.CTkScrollableFrame)
+            assert len(self.server_list.winfo_children()) == 9
+            self.change_server_page(1)
+            assert self.server_page == 1
+            assert len(self.server_list.winfo_children()) == 9
+            self.change_server_page(99)
+            assert self.server_page == 2
+            assert len(self.server_list.winfo_children()) == 7
+            self.change_server_page(-99)
+            assert self.server_page == 0
             self.latest_release = {'version':'99.0.0'}
             self.set_update_status('Update tersedia: v99.0.0')
             self.update_idletasks()

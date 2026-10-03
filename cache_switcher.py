@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.6.1"
+VERSION = "2.7.0"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -504,9 +504,9 @@ def main():
     from server_status import fetch_statuses, page_url
     ui_settings_path = os.path.join(os.path.dirname(user_config_path()), 'ui_settings.json')
     i18n.load(ui_settings_path)
-    ctk.set_appearance_mode('dark')
-    BG, CARD, LINE = ('#101113', '#191b1f', '#2c2f35')
-    RED, GOLD, MUTED, WHITE = ('#b82736', '#e9bc70', '#9ca0a9', '#f0f1f3')
+    ctk.set_appearance_mode('light')
+    BG, CARD, LINE = ('#f7f0e3', '#fffaf1', '#ddc8a3')
+    RED, GOLD, MUTED, WHITE = ('#b82736', '#896019', '#786757', '#30251e')
     FONT = 'Segoe UI' if os.name == 'nt' else 'DejaVu Sans'
     base = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
     assets = os.path.join(getattr(sys, '_MEIPASS', base), 'assets')
@@ -534,6 +534,7 @@ def main():
             self.catalog_syncing = False
             self.server_statuses = {}
             self.status_syncing = False
+            self.server_page = 0
             self.catalog_cache = os.path.join(os.path.dirname(user_config_path()), 'servers_cache.json')
             self.catalog = load_catalog(self.catalog_cache, os.path.join(getattr(sys, '_MEIPASS', base), 'servers.json'))
             self.protocol('WM_DELETE_WINDOW', self.close)
@@ -599,11 +600,11 @@ def main():
         def build_main_ui(self):
             self.grid_columnconfigure(1, weight=1)
             self.grid_rowconfigure(0, weight=1)
-            side = ctk.CTkFrame(self, width=220, fg_color='#151619', corner_radius=0)
+            side = ctk.CTkFrame(self, width=220, fg_color='#efe0c7', corner_radius=0)
             side.grid_propagate(False)
             self.sidebar = side
             side.grid(row=0, column=0, sticky='nsew')
-            brand = self.art(side, 'mini', '#151619')
+            brand = self.art(side, 'mini', '#efe0c7')
             scale = ctk.ScalingTracker.get_widget_scaling(self)
             suffix = '1' if scale <= 1.1 else '125' if scale <= 1.35 else '150' if scale <= 1.7 else '2'
             self.images['compact_brand'] = self.images['mini_' + suffix].subsample(2, 2)
@@ -649,7 +650,7 @@ def main():
             self.update_banner.grid_columnconfigure(0, weight=1)
             self.global_update_label = ctk.CTkLabel(self.update_banner, text='', text_color=GOLD, font=(FONT, 11), anchor='w')
             self.global_update_label.grid(row=0, column=0, sticky='ew', padx=12, pady=8)
-            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=lambda: self.show_update(self.latest_release) if self.latest_release else None, width=150, height=30, fg_color=RED, hover_color='#cf3444', font=(FONT, 11))
+            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=lambda: self.show_update(self.latest_release) if self.latest_release else None, width=150, height=30, fg_color=RED, hover_color='#cf3444', text_color='#ffffff', font=(FONT, 11))
             self.global_update_button.grid(row=0, column=1, padx=10, pady=8)
             self.global_update_progress = ctk.CTkProgressBar(self.update_banner, height=4, progress_color=RED, fg_color=LINE)
             self.global_update_progress.grid(row=1, column=0, columnspan=2, sticky='ew', padx=12, pady=(0, 10))
@@ -695,38 +696,57 @@ def main():
             self.catalog_status = ctk.CTkLabel(row, text='', font=(FONT, 11), text_color=MUTED)
             self.catalog_status.pack(side='left')
             self.btn(row, tr('Sync server'), self.sync_servers, width=130).pack(side='right')
-            self.server_list = ctk.CTkScrollableFrame(page, fg_color='transparent')
+            self.server_list = ctk.CTkFrame(page, fg_color='transparent')
+            for column in range(3):
+                self.server_list.grid_columnconfigure(column, weight=1, uniform='server')
+            for row_index in range(3):
+                self.server_list.grid_rowconfigure(row_index, weight=1, uniform='server')
             self.server_list.grid(row=3, column=0, sticky='nsew')
+            pager = ctk.CTkFrame(page, fg_color='transparent')
+            pager.grid(row=4, column=0, sticky='ew', pady=(10, 0))
+            self.btn(pager, tr('Sebelumnya'), lambda: self.change_server_page(-1), width=110, height=30).pack(side='left')
+            self.server_page_label = ctk.CTkLabel(pager, text='', text_color=MUTED, font=(FONT, 11))
+            self.server_page_label.pack(side='left', expand=True)
+            self.btn(pager, tr('Berikutnya'), lambda: self.change_server_page(1), width=110, height=30).pack(side='right')
+            self.render_servers()
+
+        def change_server_page(self, step):
+            total = max(1, (len(self.catalog['servers']) + 8) // 9)
+            self.server_page = min(total - 1, max(0, self.server_page + step))
             self.render_servers()
 
         def render_servers(self):
             for widget in self.server_list.winfo_children():
                 widget.destroy()
             self.buttons = [button for button in self.buttons if button.winfo_exists()]
-            for server in self.catalog['servers']:
-                card = ctk.CTkFrame(self.server_list, fg_color=CARD, corner_radius=6)
-                card.pack(fill='x', pady=(0, 6))
+            total = max(1, (len(self.catalog['servers']) + 8) // 9)
+            self.server_page = min(self.server_page, total - 1)
+            self.server_page_label.configure(text=f"{self.server_page + 1} / {total}  •  {len(self.catalog['servers'])} server")
+            servers = self.catalog['servers'][self.server_page * 9:(self.server_page + 1) * 9]
+            for index, server in enumerate(servers):
+                card = ctk.CTkFrame(self.server_list, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=12)
+                card.grid(row=index // 3, column=index % 3, sticky='nsew', padx=5, pady=5)
                 card.grid_columnconfigure(0, weight=1)
-                info = ctk.CTkFrame(card, fg_color='transparent')
-                info.grid(row=0, column=0, sticky='ew', padx=14, pady=12)
-                ctk.CTkLabel(info, text=server['name'], text_color=WHITE, font=(FONT, 13, 'bold'), anchor='w').pack(fill='x')
+                card.grid_rowconfigure(1, weight=1)
+                name = server['name']
+                if len(name) > 29:
+                    name = name[:26] + '…'
+                ctk.CTkLabel(card, text=name, height=20, text_color=WHITE, font=(FONT, 12, 'bold'), anchor='w').grid(row=0, column=0, sticky='ew', padx=12, pady=(10, 0))
                 status = self.server_statuses.get(server['join_code'], {})
                 description = status.get('description') or server.get('description', {}).get(i18n.LANGUAGE, '')
-                short_description = description.replace('\n', ' ')
-                if len(short_description) > 70:
-                    short_description = short_description[:67] + '…'
-                ctk.CTkLabel(info, text=short_description, text_color=MUTED, font=(FONT, 10), anchor='w', wraplength=330, justify='left').pack(fill='x')
-                players = f"{status['clients']} / {status['maximum']}" if status.get('available') else '—'
-                counts = ctk.CTkFrame(card, fg_color='transparent')
-                counts.grid(row=0, column=1, padx=12, pady=12)
-                ctk.CTkLabel(counts, text=players, text_color=GOLD, font=(FONT, 12, 'bold')).pack()
-                ctk.CTkLabel(counts, text=tr('pemain') if status.get('available') else tr('Belum tersedia'), text_color=MUTED, font=(FONT, 10)).pack()
+                description = description.replace('\n', ' ')
+                if len(description) > 55:
+                    description = description[:52] + '…'
+                ctk.CTkLabel(card, text=description, height=26, text_color=MUTED, font=(FONT, 10), wraplength=195, justify='left', anchor='w').grid(row=1, column=0, sticky='nw', padx=12, pady=3)
+                players = f"{status['clients']} / {status['maximum']} " + tr('pemain') if status.get('available') else tr('Belum tersedia')
+                ctk.CTkLabel(card, text=players, height=18, text_color=GOLD, font=(FONT, 11, 'bold'), anchor='w').grid(row=2, column=0, sticky='ew', padx=12, pady=3)
                 actions = ctk.CTkFrame(card, fg_color='transparent')
-                actions.grid(row=0, column=2, padx=(0, 12), pady=12)
-                self.btn(actions, tr('Buka halaman'), lambda code=server['join_code']: self.open_link(page_url(code)), width=95, height=32).pack(side='left', padx=(0, 6))
-                self.btn(actions, tr('Hubungkan'), lambda code=server['join_code']: self.connect_server(code), primary=True, width=95, height=32).pack(side='left')
+                actions.grid(row=3, column=0, sticky='ew', padx=10, pady=(3, 10))
+                actions.grid_columnconfigure((0, 1), weight=1)
+                self.btn(actions, tr('Halaman'), lambda code=server['join_code']: self.open_link(page_url(code)), width=75, height=28).grid(row=0, column=0, sticky='ew', padx=(0, 4))
+                self.btn(actions, tr('Hubungkan'), lambda code=server['join_code']: self.connect_server(code), primary=True, width=85, height=28).grid(row=0, column=1, sticky='ew')
             if not self.catalog['servers']:
-                ctk.CTkLabel(self.server_list, text=tr('Tidak ada server dalam daftar.'), text_color=MUTED).pack(pady=30)
+                ctk.CTkLabel(self.server_list, text=tr('Tidak ada server dalam daftar.'), text_color=MUTED).grid(row=0, column=0, columnspan=3, pady=30)
 
         def periodic_status(self):
             if self.closed:
@@ -833,7 +853,7 @@ def main():
             def guarded():
                 if not self.busy:
                     command()
-            b = ctk.CTkButton(parent, text=text, command=guarded, width=width, height=height, fg_color=RED if primary else '#24262b', hover_color='#cf3444' if primary else '#34373e', text_color=WHITE, border_color='#71333a' if primary else LINE, border_width=1, corner_radius=6, font=(FONT, 12))
+            b = ctk.CTkButton(parent, text=text, command=guarded, width=width, height=height, fg_color=RED if primary else '#f1e3cc', hover_color='#cf3444' if primary else '#e6d0aa', text_color='#ffffff' if primary else WHITE, border_color=RED if primary else LINE, border_width=1, corner_radius=6, font=(FONT, 12))
             self.buttons.append(b)
             return b
 
@@ -847,7 +867,7 @@ def main():
                 else:
                     page.grid_remove()
             for key, b in self.nav.items():
-                b.configure(fg_color='#302329' if key == name else 'transparent', text_color=GOLD if key == name else WHITE)
+                b.configure(fg_color='#ead3b2' if key == name else 'transparent', text_color=GOLD if key == name else WHITE)
 
         def build_cache(self, page):
             page.grid_columnconfigure(0, weight=1)
@@ -876,11 +896,11 @@ def main():
             self.count.pack(side='left')
             self.btn(row, tr('+ Tambah kota'), self.add, primary=True, width=142).pack(side='right')
             self.btn(row, 'Refresh', self.refresh, width=90).pack(side='right', padx=8)
-            self.list = ctk.CTkScrollableFrame(page, fg_color='transparent', corner_radius=0, scrollbar_button_color='#57353e', scrollbar_button_hover_color=RED)
+            self.list = ctk.CTkScrollableFrame(page, fg_color='transparent', corner_radius=0, scrollbar_button_color='#c2a474', scrollbar_button_hover_color=RED)
             self.list.grid(row=3, column=0, sticky='nsew')
             self.path_label = ctk.CTkLabel(page, text='', anchor='w', text_color=MUTED, font=(FONT, 10), wraplength=780, justify='left')
             self.path_label.grid(row=4, column=0, sticky='ew', pady=(9, 0))
-            ctk.CTkLabel(page, text=tr('Tutup FiveM sebelum switch. Cache kota disimpan secara terpisah.'), anchor='w', text_color='#ba927e', font=(FONT, 10)).grid(row=5, column=0, sticky='ew', pady=(2, 0))
+            ctk.CTkLabel(page, text=tr('Tutup FiveM sebelum switch. Cache kota disimpan secara terpisah.'), anchor='w', text_color='#786757', font=(FONT, 10)).grid(row=5, column=0, sticky='ew', pady=(2, 0))
 
         def build_tools(self, page):
             page.grid_columnconfigure(0, weight=1)
@@ -903,7 +923,7 @@ def main():
             ctk.CTkLabel(temp, text=tr('Bersihkan file sementara. File terkunci akan dilewati.'), text_color=MUTED, font=(FONT, 11)).pack(anchor='w', padx=20)
             temp_row = ctk.CTkFrame(temp, fg_color='transparent')
             temp_row.pack(fill='x', padx=20, pady=(12, 18))
-            self.temp_choice = ctk.CTkOptionMenu(temp_row, values=['User Temp', 'System Temp', tr('Semua Temp')], fg_color='#30222a', button_color='#6d2e3b', button_hover_color=RED, width=210, font=(FONT, 12))
+            self.temp_choice = ctk.CTkOptionMenu(temp_row, values=['User Temp', 'System Temp', tr('Semua Temp')], fg_color='#f1e3cc', button_color='#b82736', button_hover_color=RED, text_color=WHITE, width=210, font=(FONT, 12))
             self.temp_choice.pack(side='left')
             self.btn(temp_row, tr('Bersihkan'), self.clean, width=140).pack(side='right')
             dns = ctk.CTkFrame(page, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=8)
@@ -912,15 +932,15 @@ def main():
             ctk.CTkLabel(dns, text=tr('Pilih adapter. Pengaturan DNS memerlukan administrator.'), text_color=MUTED, font=(FONT, 11)).pack(anchor='w', padx=20)
             dr = ctk.CTkFrame(dns, fg_color='transparent')
             dr.pack(fill='x', padx=20, pady=(12, 18))
-            self.adapter = ctk.CTkOptionMenu(dr, values=[tr('Pilih adapter')], width=230, fg_color='#30222a', button_color='#6d2e3b', button_hover_color=RED, font=(FONT, 12))
+            self.adapter = ctk.CTkOptionMenu(dr, values=[tr('Pilih adapter')], width=230, fg_color='#f1e3cc', button_color='#b82736', button_hover_color=RED, text_color=WHITE, font=(FONT, 12))
             self.adapter.pack(side='left')
-            self.dns_choice = ctk.CTkOptionMenu(dr, values=['Default (ISP)', 'Cloudflare', 'Google'], width=165, fg_color='#30222a', button_color='#6d2e3b', button_hover_color=RED, font=(FONT, 12))
+            self.dns_choice = ctk.CTkOptionMenu(dr, values=['Default (ISP)', 'Cloudflare', 'Google'], width=165, fg_color='#f1e3cc', button_color='#b82736', button_hover_color=RED, text_color=WHITE, font=(FONT, 12))
             self.dns_choice.pack(side='left', padx=12)
             self.btn(dr, tr('Terapkan DNS'), self.dns, primary=True, width=140).pack(side='right')
             language_card = ctk.CTkFrame(page, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=8)
             language_card.grid(row=5, column=0, sticky='ew', pady=(0, 14))
             ctk.CTkLabel(language_card, text=tr('BAHASA APLIKASI'), text_color=GOLD, font=(FONT, 14, 'bold')).pack(anchor='w', padx=20, pady=(14, 8))
-            language = ctk.CTkSegmentedButton(language_card, values=['Indonesia', 'English'], command=self.change_language, selected_color=RED, selected_hover_color='#d13747', unselected_color='#292026', height=28)
+            language = ctk.CTkSegmentedButton(language_card, values=['Indonesia', 'English'], command=self.change_language, selected_color='#ead0b0', selected_hover_color='#e3c292', unselected_color='#fffaf1', text_color=WHITE, text_color_disabled=MUTED, height=28)
             language.set('English' if i18n.LANGUAGE == 'en' else 'Indonesia')
             language.pack(anchor='w', padx=20, pady=(0, 14))
             self.language_selector = language
@@ -1070,7 +1090,7 @@ def main():
             dialog.bind('<Escape>', close)
             shell = ctk.CTkFrame(dialog, fg_color=CARD, border_color='#79523c', border_width=1, corner_radius=0)
             shell.pack(fill='both', expand=True)
-            header = ctk.CTkFrame(shell, fg_color='#21181c', height=48, corner_radius=0)
+            header = ctk.CTkFrame(shell, fg_color='#efdfc5', height=48, corner_radius=0)
             header.pack(fill='x', padx=1, pady=(1, 0))
             header.pack_propagate(False)
             brand = ctk.CTkLabel(header, text=tr('GANOMABI  /  PEMBARUAN'), text_color=GOLD, font=(FONT, 11, 'bold'))
@@ -1097,7 +1117,7 @@ def main():
             subtitle = tr('Unduh dan pasang langsung dari aplikasi.') if release else tr('Coba lagi saat koneksi tersedia.') if error else tr('Belum ada rilis stabil yang lebih baru.')
             ctk.CTkLabel(titles, text=title, anchor='w', text_color=WHITE, font=(FONT, 20, 'bold')).pack(fill='x')
             ctk.CTkLabel(titles, text=subtitle, anchor='w', text_color=MUTED, font=(FONT, 11)).pack(fill='x', pady=(4, 0))
-            versions = ctk.CTkFrame(shell, fg_color='#100d10', border_color=LINE, border_width=1, corner_radius=10)
+            versions = ctk.CTkFrame(shell, fg_color='#f5ead6', border_color=LINE, border_width=1, corner_radius=10)
             versions.pack(fill='x', padx=26, pady=(0, 14))
 
             def version_cell(parent, label, value, color):
@@ -1114,7 +1134,7 @@ def main():
             else:
                 description = tr('Kamu bisa melanjutkan menggunakan aplikasi. Kami akan memberi notifikasi ketika rilis baru tersedia di GitHub.')
             ctk.CTkLabel(shell, text=description, text_color=MUTED, font=(FONT, 12), justify='left', anchor='w', wraplength=480).pack(fill='x', padx=28, pady=(0, 10))
-            ctk.CTkLabel(shell, text='© 2026 GANOMABI / amiinarii', text_color='#806b73', font=(FONT, 10)).pack(side='bottom', pady=(0, 14))
+            ctk.CTkLabel(shell, text='© 2026 GANOMABI / amiinarii', text_color='#786757', font=(FONT, 10)).pack(side='bottom', pady=(0, 14))
             row = ctk.CTkFrame(shell, fg_color='transparent')
             row.pack(side='bottom', fill='x', padx=26, pady=(6, 12))
             self.download_label = ctk.CTkLabel(shell, text='', text_color=GOLD, font=(FONT, 11))
@@ -1151,10 +1171,10 @@ def main():
                 self.check_updates(manual=True)
             action = download if release else retry if error else close
             label = tr('Update sekarang') if release else tr('Coba lagi') if error else tr('Mengerti')
-            primary = ctk.CTkButton(row, text=label, command=action, width=180, height=42, fg_color=RED, hover_color='#d13747', text_color=WHITE, corner_radius=6, font=(FONT, 12))
+            primary = ctk.CTkButton(row, text=label, command=action, width=180, height=42, fg_color=RED, hover_color='#d13747', text_color='#ffffff', corner_radius=6, font=(FONT, 12))
             primary.pack(side='right')
             if release or error:
-                ctk.CTkButton(row, text=tr('Nanti') if release else tr('Tutup'), command=close, width=120, height=42, fg_color='#292026', hover_color='#443139', text_color=WHITE, border_color=LINE, border_width=1, corner_radius=6, font=(FONT, 12)).pack(side='right', padx=(0, 10))
+                ctk.CTkButton(row, text=tr('Nanti') if release else tr('Tutup'), command=close, width=120, height=42, fg_color='#f1e3cc', hover_color='#e6d0aa', text_color=WHITE, border_color=LINE, border_width=1, corner_radius=6, font=(FONT, 12)).pack(side='right', padx=(0, 10))
             dialog.bind('<Return>', lambda event: action())
             def present():
                 if not dialog.winfo_exists():
@@ -1226,10 +1246,10 @@ def main():
                 ctk.CTkLabel(empty, text=tr('Pilih FiveM.exe, lalu tambahkan kota pertamamu.'), text_color=MUTED, font=(FONT, 11)).pack(pady=(5, 20))
             for index, (pid, name) in enumerate(self.store.profiles.items()):
                 current = active == pid
-                bg = '#28191d' if current else CARD
+                bg = '#fae6d1' if current else CARD
                 card = ctk.CTkFrame(self.list, fg_color=bg, border_color='#b68b48' if current else LINE, border_width=1, corner_radius=12)
                 card.pack(fill='x', pady=(0, 9))
-                badge = ctk.CTkFrame(card, fg_color='#56202b' if current else '#2b2227', width=46, height=46, corner_radius=12)
+                badge = ctk.CTkFrame(card, fg_color='#ead0b0' if current else '#efe0c7', width=46, height=46, corner_radius=12)
                 badge.pack(side='left', padx=(16, 10), pady=15)
                 badge.pack_propagate(False)
                 ctk.CTkLabel(badge, text=f'{index + 1:02d}', font=(FONT, 16, 'bold'), text_color=GOLD).pack(expand=True)
@@ -1310,7 +1330,7 @@ def main():
             ctk.CTkLabel(titles, text=APP_NAME, text_color=GOLD, font=(FONT, 10, 'bold'), anchor='w').pack(fill='x')
             ctk.CTkLabel(titles, text=title, text_color=WHITE, font=(FONT, 20, 'bold'), anchor='w').pack(fill='x', pady=4)
             ctk.CTkLabel(card, text=prompt, text_color=MUTED, font=(FONT, 12), anchor='w').pack(fill='x', padx=24, pady=(8, 5))
-            entry = ctk.CTkEntry(card, height=44, fg_color='#100d10', border_color='#8e6846', border_width=1, corner_radius=9, text_color=WHITE, placeholder_text=tr('Contoh: GANOMABI City'), placeholder_text_color='#806b73', font=(FONT, 14))
+            entry = ctk.CTkEntry(card, height=44, fg_color='#f5ead6', border_color='#8e6846', border_width=1, corner_radius=9, text_color=WHITE, placeholder_text=tr('Contoh: GANOMABI City'), placeholder_text_color='#786757', font=(FONT, 14))
             entry.pack(fill='x', padx=24)
             if initial:
                 entry.insert(0, initial)
