@@ -43,6 +43,13 @@ def automated_loop(self):
             assert len(self.server_list.winfo_children()) == 7
             self.change_server_page(-99)
             assert self.server_page == 0
+            self.show_page('tools')
+            self.change_theme('Gelap')
+            assert self.cget('fg_color')=='#101113'
+            assert self.page=='tools'
+            self.change_theme('Terang')
+            assert self.cget('fg_color')=='#f7f0e3'
+            self.show_page('servers')
             calls=[]
             self.check_updates=lambda **kwargs:calls.append(kwargs)
             self.show_page('tools')

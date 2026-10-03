@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.1"
+VERSION = "2.7.2"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -525,9 +525,12 @@ def main():
     from server_status import fetch_statuses, page_url
     ui_settings_path = os.path.join(os.path.dirname(user_config_path()), 'ui_settings.json')
     i18n.load(ui_settings_path)
-    ctk.set_appearance_mode('light')
-    BG, CARD, LINE = ('#f7f0e3', '#fffaf1', '#ddc8a3')
-    RED, GOLD, MUTED, WHITE = ('#b82736', '#896019', '#786757', '#30251e')
+    import app_theme
+    theme_settings_path = os.path.join(os.path.dirname(user_config_path()), 'theme.json')
+    app_theme.load(theme_settings_path)
+    ctk.set_appearance_mode(app_theme.THEME)
+    BG, CARD, LINE = (app_theme.color('#f7f0e3'), app_theme.color('#fffaf1'), app_theme.color('#ddc8a3'))
+    RED, GOLD, MUTED, WHITE = (app_theme.color('#b82736'), app_theme.color('#896019'), app_theme.color('#786757'), app_theme.color('#30251e'))
     FONT = 'Segoe UI' if os.name == 'nt' else 'DejaVu Sans'
     base = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
     assets = os.path.join(getattr(sys, '_MEIPASS', base), 'assets')
@@ -575,9 +578,9 @@ def main():
             x = (self.winfo_screenwidth() - round(540 * scale)) // 2
             y = (self.winfo_screenheight() - round(390 * scale)) // 2
             self.splash.geometry(f'540x390+{x}+{y}')
-            frame = ctk.CTkFrame(self.splash, fg_color='#211219', border_color='#794336', border_width=1, corner_radius=16)
+            frame = ctk.CTkFrame(self.splash, fg_color=app_theme.color('#211219'), border_color=app_theme.color('#794336'), border_width=1, corner_radius=16)
             frame.pack(fill='both', expand=True, padx=2, pady=2)
-            self.art(frame, 'sidebar', '#211219').pack(pady=(16, 0))
+            self.art(frame, 'sidebar', app_theme.color('#211219')).pack(pady=(16, 0))
             ctk.CTkLabel(frame, text=APP_NAME, text_color=GOLD, font=(FONT, 20, 'bold')).pack(pady=(8, 0))
             ctk.CTkLabel(frame, text='FiveM Launcher & Profiles', text_color=MUTED, font=(FONT, 12)).pack(pady=(0, 19))
             self.splash_progress = ctk.CTkProgressBar(frame, width=420, height=7, fg_color=LINE, progress_color=GOLD)
@@ -621,11 +624,11 @@ def main():
         def build_main_ui(self):
             self.grid_columnconfigure(1, weight=1)
             self.grid_rowconfigure(0, weight=1)
-            side = ctk.CTkFrame(self, width=220, fg_color='#efe0c7', corner_radius=0)
+            side = ctk.CTkFrame(self, width=220, fg_color=app_theme.color('#efe0c7'), corner_radius=0)
             side.grid_propagate(False)
             self.sidebar = side
             side.grid(row=0, column=0, sticky='nsew')
-            brand = self.art(side, 'mini', '#efe0c7')
+            brand = self.art(side, 'mini', app_theme.color('#efe0c7'))
             scale = ctk.ScalingTracker.get_widget_scaling(self)
             suffix = '1' if scale <= 1.1 else '125' if scale <= 1.35 else '150' if scale <= 1.7 else '2'
             self.images['compact_brand'] = self.images['mini_' + suffix].subsample(2, 2)
@@ -671,7 +674,7 @@ def main():
             self.update_banner.grid_columnconfigure(0, weight=1)
             self.global_update_label = ctk.CTkLabel(self.update_banner, text='', text_color=GOLD, font=(FONT, 11), anchor='w')
             self.global_update_label.grid(row=0, column=0, sticky='ew', padx=12, pady=8)
-            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=lambda: self.show_update(self.latest_release) if self.latest_release else None, width=150, height=30, fg_color=RED, hover_color='#cf3444', text_color='#ffffff', font=(FONT, 11))
+            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=lambda: self.show_update(self.latest_release) if self.latest_release else None, width=150, height=30, fg_color=RED, hover_color=app_theme.color('#cf3444'), text_color=app_theme.color('#ffffff'), font=(FONT, 11))
             self.global_update_button.grid(row=0, column=1, padx=10, pady=8)
             self.global_update_progress = ctk.CTkProgressBar(self.update_banner, height=4, progress_color=RED, fg_color=LINE)
             self.global_update_progress.grid(row=1, column=0, columnspan=2, sticky='ew', padx=12, pady=(0, 10))
@@ -704,6 +707,27 @@ def main():
             for widget in self.winfo_children():
                 widget.destroy()
             self.buttons = []
+            self.build_main_ui()
+            self.show_page(page)
+
+        def change_theme(self, choice):
+            nonlocal BG, CARD, LINE, RED, GOLD, MUTED, WHITE
+            if self.busy or self.update_installing or self.grab_current() is not None or (self.update_dialog is not None and self.update_dialog.winfo_exists()):
+                self.theme_selector.set(tr('Gelap') if app_theme.THEME == 'dark' else tr('Terang'))
+                return
+            try:
+                app_theme.save('dark' if choice == tr('Gelap') else 'light', theme_settings_path)
+            except OSError as exc:
+                messagebox.showerror(tr('Konfigurasi'), str(exc), parent=self)
+                return
+            ctk.set_appearance_mode(app_theme.THEME)
+            BG, CARD, LINE = (app_theme.color('#f7f0e3'), app_theme.color('#fffaf1'), app_theme.color('#ddc8a3'))
+            RED, GOLD, MUTED, WHITE = (app_theme.color('#b82736'), app_theme.color('#896019'), app_theme.color('#786757'), app_theme.color('#30251e'))
+            page = self.page
+            for widget in self.winfo_children():
+                widget.destroy()
+            self.buttons = []
+            self.configure(fg_color=BG)
             self.build_main_ui()
             self.show_page(page)
 
@@ -781,6 +805,7 @@ def main():
                 return
             self.status_syncing = True
             codes = [server['join_code'] for server in self.catalog['servers']]
+
             def worker():
                 self.results.append(('server_status', fetch_statuses(codes)))
             threading.Thread(target=worker, daemon=True).start()
@@ -839,7 +864,7 @@ def main():
             label.destroy()
             width, height = (picture.width(), picture.height())
             canvas = Canvas(parent, width=width, height=height, bg=background, bd=0, highlightthickness=0)
-            motes = [canvas.create_oval(0, 0, 2, 2, fill='#98733e', outline='') for _ in range(10)]
+            motes = [canvas.create_oval(0, 0, 2, 2, fill=app_theme.color('#98733e'), outline='') for _ in range(10)]
             artwork = canvas.create_image(width / 2, height / 2, image=picture)
             animate = True
             if os.name == 'nt':
@@ -874,7 +899,7 @@ def main():
             def guarded():
                 if not self.busy:
                     command()
-            b = ctk.CTkButton(parent, text=text, command=guarded, width=width, height=height, fg_color=RED if primary else '#f1e3cc', hover_color='#cf3444' if primary else '#e6d0aa', text_color='#ffffff' if primary else WHITE, border_color=RED if primary else LINE, border_width=1, corner_radius=6, font=(FONT, 12))
+            b = ctk.CTkButton(parent, text=text, command=guarded, width=width, height=height, fg_color=RED if primary else app_theme.color('#f1e3cc'), hover_color=app_theme.color('#cf3444') if primary else app_theme.color('#e6d0aa'), text_color=app_theme.color('#ffffff') if primary else WHITE, border_color=RED if primary else LINE, border_width=1, corner_radius=6, font=(FONT, 12))
             self.buttons.append(b)
             return b
 
@@ -888,7 +913,7 @@ def main():
                 else:
                     page.grid_remove()
             for key, b in self.nav.items():
-                b.configure(fg_color='#ead3b2' if key == name else 'transparent', text_color=GOLD if key == name else WHITE)
+                b.configure(fg_color=app_theme.color('#ead3b2') if key == name else 'transparent', text_color=GOLD if key == name else WHITE)
 
         def build_cache(self, page):
             page.grid_columnconfigure(0, weight=1)
@@ -917,11 +942,11 @@ def main():
             self.count.pack(side='left')
             self.btn(row, tr('+ Tambah kota'), self.add, primary=True, width=142).pack(side='right')
             self.btn(row, 'Refresh', self.refresh, width=90).pack(side='right', padx=8)
-            self.list = ctk.CTkScrollableFrame(page, fg_color='transparent', corner_radius=0, scrollbar_button_color='#c2a474', scrollbar_button_hover_color=RED)
+            self.list = ctk.CTkScrollableFrame(page, fg_color='transparent', corner_radius=0, scrollbar_button_color=app_theme.color('#c2a474'), scrollbar_button_hover_color=RED)
             self.list.grid(row=3, column=0, sticky='nsew')
             self.path_label = ctk.CTkLabel(page, text='', anchor='w', text_color=MUTED, font=(FONT, 10), wraplength=780, justify='left')
             self.path_label.grid(row=4, column=0, sticky='ew', pady=(9, 0))
-            ctk.CTkLabel(page, text=tr('Tutup FiveM sebelum switch. Cache kota disimpan secara terpisah.'), anchor='w', text_color='#786757', font=(FONT, 10)).grid(row=5, column=0, sticky='ew', pady=(2, 0))
+            ctk.CTkLabel(page, text=tr('Tutup FiveM sebelum switch. Cache kota disimpan secara terpisah.'), anchor='w', text_color=app_theme.color('#786757'), font=(FONT, 10)).grid(row=5, column=0, sticky='ew', pady=(2, 0))
 
         def build_tools(self, page):
             page.grid_columnconfigure(0, weight=1)
@@ -944,7 +969,7 @@ def main():
             ctk.CTkLabel(temp, text=tr('Bersihkan file sementara. File terkunci akan dilewati.'), text_color=MUTED, font=(FONT, 11)).pack(anchor='w', padx=20)
             temp_row = ctk.CTkFrame(temp, fg_color='transparent')
             temp_row.pack(fill='x', padx=20, pady=(12, 18))
-            self.temp_choice = ctk.CTkOptionMenu(temp_row, values=['User Temp', 'System Temp', tr('Semua Temp')], fg_color='#f1e3cc', button_color='#b82736', button_hover_color=RED, text_color=WHITE, width=210, font=(FONT, 12))
+            self.temp_choice = ctk.CTkOptionMenu(temp_row, values=['User Temp', 'System Temp', tr('Semua Temp')], fg_color=app_theme.color('#f1e3cc'), button_color=app_theme.color('#b82736'), button_hover_color=RED, text_color=WHITE, width=210, font=(FONT, 12))
             self.temp_choice.pack(side='left')
             self.btn(temp_row, tr('Bersihkan'), self.clean, width=140).pack(side='right')
             dns = ctk.CTkFrame(page, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=8)
@@ -953,15 +978,15 @@ def main():
             ctk.CTkLabel(dns, text=tr('Pilih adapter. Pengaturan DNS memerlukan administrator.'), text_color=MUTED, font=(FONT, 11)).pack(anchor='w', padx=20)
             dr = ctk.CTkFrame(dns, fg_color='transparent')
             dr.pack(fill='x', padx=20, pady=(12, 18))
-            self.adapter = ctk.CTkOptionMenu(dr, values=[tr('Pilih adapter')], width=230, fg_color='#f1e3cc', button_color='#b82736', button_hover_color=RED, text_color=WHITE, font=(FONT, 12))
+            self.adapter = ctk.CTkOptionMenu(dr, values=[tr('Pilih adapter')], width=230, fg_color=app_theme.color('#f1e3cc'), button_color=app_theme.color('#b82736'), button_hover_color=RED, text_color=WHITE, font=(FONT, 12))
             self.adapter.pack(side='left')
-            self.dns_choice = ctk.CTkOptionMenu(dr, values=['Default (ISP)', 'Cloudflare', 'Google'], width=165, fg_color='#f1e3cc', button_color='#b82736', button_hover_color=RED, text_color=WHITE, font=(FONT, 12))
+            self.dns_choice = ctk.CTkOptionMenu(dr, values=['Default (ISP)', 'Cloudflare', 'Google'], width=165, fg_color=app_theme.color('#f1e3cc'), button_color=app_theme.color('#b82736'), button_hover_color=RED, text_color=WHITE, font=(FONT, 12))
             self.dns_choice.pack(side='left', padx=12)
             self.btn(dr, tr('Terapkan DNS'), self.dns, primary=True, width=140).pack(side='right')
             language_card = ctk.CTkFrame(page, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=8)
             language_card.grid(row=5, column=0, sticky='ew', pady=(0, 14))
             ctk.CTkLabel(language_card, text=tr('BAHASA APLIKASI'), text_color=GOLD, font=(FONT, 14, 'bold')).pack(anchor='w', padx=20, pady=(14, 8))
-            language = ctk.CTkSegmentedButton(language_card, values=['Indonesia', 'English'], command=self.change_language, selected_color='#ead0b0', selected_hover_color='#e3c292', unselected_color='#fffaf1', text_color=WHITE, text_color_disabled=MUTED, height=28)
+            language = ctk.CTkSegmentedButton(language_card, values=['Indonesia', 'English'], command=self.change_language, selected_color=app_theme.color('#ead0b0'), selected_hover_color=app_theme.color('#e3c292'), unselected_color=app_theme.color('#fffaf1'), text_color=WHITE, text_color_disabled=MUTED, height=28)
             language.set('English' if i18n.LANGUAGE == 'en' else 'Indonesia')
             language.pack(anchor='w', padx=20, pady=(0, 14))
             self.language_selector = language
@@ -971,7 +996,12 @@ def main():
             self.check_update_button.pack(side='right', padx=16, pady=16)
             self.update_status = ctk.CTkLabel(updates, text='v' + VERSION, text_color=MUTED, font=(FONT, 11), wraplength=430, justify='left')
             self.update_status.pack(side='left', padx=20, pady=16)
-
+            themes = ctk.CTkFrame(page, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=8)
+            themes.grid(row=7, column=0, sticky='ew', pady=(0, 14))
+            ctk.CTkLabel(themes, text=tr('TEMA APLIKASI'), text_color=GOLD, font=(FONT, 14, 'bold')).pack(anchor='w', padx=20, pady=(14, 8))
+            self.theme_selector = ctk.CTkSegmentedButton(themes, values=[tr('Terang'), tr('Gelap')], command=self.change_theme, selected_color=app_theme.color('#ead0b0'), selected_hover_color=app_theme.color('#e3c292'), unselected_color=app_theme.color('#fffaf1'), text_color=WHITE, height=30)
+            self.theme_selector.set(tr('Gelap') if app_theme.THEME == 'dark' else tr('Terang'))
+            self.theme_selector.pack(anchor='w', padx=20, pady=(0, 14))
 
         def poll(self):
             while self.results:
@@ -1104,7 +1134,6 @@ def main():
             dialog.configure(fg_color=BG)
             dialog.resizable(False, False)
             dialog.transient(self)
-            # Keep a normal owned window so Windows can reliably bring it forward.
             scale = ctk.ScalingTracker.get_window_scaling(dialog)
             x = self.winfo_rootx() + (self.winfo_width() - round(540 * scale)) // 2
             y = self.winfo_rooty() + (self.winfo_height() - round(540 * scale)) // 2
@@ -1120,9 +1149,9 @@ def main():
                 self.update_dialog = None
             dialog.protocol('WM_DELETE_WINDOW', close)
             dialog.bind('<Escape>', close)
-            shell = ctk.CTkFrame(dialog, fg_color=CARD, border_color='#79523c', border_width=1, corner_radius=0)
+            shell = ctk.CTkFrame(dialog, fg_color=CARD, border_color=app_theme.color('#79523c'), border_width=1, corner_radius=0)
             shell.pack(fill='both', expand=True)
-            header = ctk.CTkFrame(shell, fg_color='#efdfc5', height=48, corner_radius=0)
+            header = ctk.CTkFrame(shell, fg_color=app_theme.color('#efdfc5'), height=48, corner_radius=0)
             header.pack(fill='x', padx=1, pady=(1, 0))
             header.pack_propagate(False)
             brand = ctk.CTkLabel(header, text=tr('GANOMABI  /  PEMBARUAN'), text_color=GOLD, font=(FONT, 11, 'bold'))
@@ -1149,7 +1178,7 @@ def main():
             subtitle = tr('Unduh dan pasang langsung dari aplikasi.') if release else tr('Coba lagi saat koneksi tersedia.') if error else tr('Belum ada rilis stabil yang lebih baru.')
             ctk.CTkLabel(titles, text=title, anchor='w', text_color=WHITE, font=(FONT, 20, 'bold')).pack(fill='x')
             ctk.CTkLabel(titles, text=subtitle, anchor='w', text_color=MUTED, font=(FONT, 11)).pack(fill='x', pady=(4, 0))
-            versions = ctk.CTkFrame(shell, fg_color='#f5ead6', border_color=LINE, border_width=1, corner_radius=10)
+            versions = ctk.CTkFrame(shell, fg_color=app_theme.color('#f5ead6'), border_color=LINE, border_width=1, corner_radius=10)
             versions.pack(fill='x', padx=26, pady=(0, 14))
 
             def version_cell(parent, label, value, color):
@@ -1171,7 +1200,7 @@ def main():
                 summary = release.get('summary') or tr('Ringkasan belum tersedia. Lihat catatan rilis di GitHub.')
                 self.release_summary_label = ctk.CTkLabel(shell, text=summary, text_color=WHITE, font=(FONT, 11), wraplength=475, justify='left', anchor='w')
                 self.release_summary_label.pack(fill='x', padx=28, pady=(0, 8))
-            ctk.CTkLabel(shell, text='© 2026 GANOMABI / amiinarii', text_color='#786757', font=(FONT, 10)).pack(side='bottom', pady=(0, 14))
+            ctk.CTkLabel(shell, text='© 2026 GANOMABI / amiinarii', text_color=app_theme.color('#786757'), font=(FONT, 10)).pack(side='bottom', pady=(0, 14))
             row = ctk.CTkFrame(shell, fg_color='transparent')
             row.pack(side='bottom', fill='x', padx=26, pady=(6, 12))
             self.download_label = ctk.CTkLabel(shell, text='', text_color=GOLD, font=(FONT, 11))
@@ -1208,11 +1237,12 @@ def main():
                 self.check_updates(manual=True)
             action = download if release else retry if error else close
             label = tr('Update sekarang') if release else tr('Coba lagi') if error else tr('Mengerti')
-            primary = ctk.CTkButton(row, text=label, command=action, width=180, height=42, fg_color=RED, hover_color='#d13747', text_color='#ffffff', corner_radius=6, font=(FONT, 12))
+            primary = ctk.CTkButton(row, text=label, command=action, width=180, height=42, fg_color=RED, hover_color=app_theme.color('#d13747'), text_color=app_theme.color('#ffffff'), corner_radius=6, font=(FONT, 12))
             primary.pack(side='right')
             if release or error:
-                ctk.CTkButton(row, text=tr('Nanti') if release else tr('Tutup'), command=close, width=120, height=42, fg_color='#f1e3cc', hover_color='#e6d0aa', text_color=WHITE, border_color=LINE, border_width=1, corner_radius=6, font=(FONT, 12)).pack(side='right', padx=(0, 10))
+                ctk.CTkButton(row, text=tr('Nanti') if release else tr('Tutup'), command=close, width=120, height=42, fg_color=app_theme.color('#f1e3cc'), hover_color=app_theme.color('#e6d0aa'), text_color=WHITE, border_color=LINE, border_width=1, corner_radius=6, font=(FONT, 12)).pack(side='right', padx=(0, 10))
             dialog.bind('<Return>', lambda event: action())
+
             def present():
                 if not dialog.winfo_exists():
                     return
@@ -1220,12 +1250,11 @@ def main():
                 dialog.lift()
                 dialog.attributes('-topmost', True)
                 primary.focus_set()
+
                 def release_topmost():
                     if dialog.winfo_exists():
                         dialog.attributes('-topmost', False)
                 dialog.after(500, release_topmost)
-            # CustomTkinter updates the Windows titlebar asynchronously; present
-            # after that initialization so its withdraw/restore cannot hide us.
             dialog.after(250, present)
 
         def finish_update_error(self, error):
@@ -1282,10 +1311,10 @@ def main():
                 ctk.CTkLabel(empty, text=tr('Pilih FiveM.exe, lalu tambahkan kota pertamamu.'), text_color=MUTED, font=(FONT, 11)).pack(pady=(5, 20))
             for index, (pid, name) in enumerate(self.store.profiles.items()):
                 current = active == pid
-                bg = '#fae6d1' if current else CARD
-                card = ctk.CTkFrame(self.list, fg_color=bg, border_color='#b68b48' if current else LINE, border_width=1, corner_radius=12)
+                bg = app_theme.color('#fae6d1') if current else CARD
+                card = ctk.CTkFrame(self.list, fg_color=bg, border_color=app_theme.color('#b68b48') if current else LINE, border_width=1, corner_radius=12)
                 card.pack(fill='x', pady=(0, 9))
-                badge = ctk.CTkFrame(card, fg_color='#ead0b0' if current else '#efe0c7', width=46, height=46, corner_radius=12)
+                badge = ctk.CTkFrame(card, fg_color=app_theme.color('#ead0b0') if current else app_theme.color('#efe0c7'), width=46, height=46, corner_radius=12)
                 badge.pack(side='left', padx=(16, 10), pady=15)
                 badge.pack_propagate(False)
                 ctk.CTkLabel(badge, text=f'{index + 1:02d}', font=(FONT, 16, 'bold'), text_color=GOLD).pack(expand=True)
@@ -1366,7 +1395,7 @@ def main():
             ctk.CTkLabel(titles, text=APP_NAME, text_color=GOLD, font=(FONT, 10, 'bold'), anchor='w').pack(fill='x')
             ctk.CTkLabel(titles, text=title, text_color=WHITE, font=(FONT, 20, 'bold'), anchor='w').pack(fill='x', pady=4)
             ctk.CTkLabel(card, text=prompt, text_color=MUTED, font=(FONT, 12), anchor='w').pack(fill='x', padx=24, pady=(8, 5))
-            entry = ctk.CTkEntry(card, height=44, fg_color='#f5ead6', border_color='#8e6846', border_width=1, corner_radius=9, text_color=WHITE, placeholder_text=tr('Contoh: GANOMABI City'), placeholder_text_color='#786757', font=(FONT, 14))
+            entry = ctk.CTkEntry(card, height=44, fg_color=app_theme.color('#f5ead6'), border_color=app_theme.color('#8e6846'), border_width=1, corner_radius=9, text_color=WHITE, placeholder_text=tr('Contoh: GANOMABI City'), placeholder_text_color=app_theme.color('#786757'), font=(FONT, 14))
             entry.pack(fill='x', padx=24)
             if initial:
                 entry.insert(0, initial)
@@ -1378,7 +1407,7 @@ def main():
             def submit(event=None):
                 name = entry.get().strip()
                 if not name:
-                    hint.configure(text=tr('Isi nama kota terlebih dahulu.'), text_color='#ee7782')
+                    hint.configure(text=tr('Isi nama kota terlebih dahulu.'), text_color=app_theme.color('#ee7782'))
                     entry.focus_set()
                     return
                 dialog.result = name
