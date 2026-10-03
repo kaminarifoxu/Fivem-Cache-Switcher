@@ -43,7 +43,13 @@ def automated_loop(self):
             assert len(self.server_list.winfo_children()) == 7
             self.change_server_page(-99)
             assert self.server_page == 0
-            self.latest_release = {'version':'99.0.0'}
+            calls=[]
+            self.check_updates=lambda **kwargs:calls.append(kwargs)
+            self.show_page('tools')
+            self.check_update_button.invoke()
+            assert calls == [{'manual':True}]
+            self.show_page('servers')
+            self.latest_release = {'version':'99.0.0','summary':'• New theme\n• Update button fix'}
             self.set_update_status('Update tersedia: v99.0.0')
             self.update_idletasks()
             assert self.update_banner.winfo_viewable(), "global update banner hidden"
@@ -53,6 +59,14 @@ def automated_loop(self):
             self.after_cancel(timeout)
             assert self.update_dialog.winfo_viewable(), "update dialog not mapped yet"
             assert not self.update_dialog.overrideredirect()
+            assert self.grab_current() is None
+            assert 'Update button fix' in self.release_summary_label.cget('text')
+            self.update_dialog.withdraw()
+            self.show_page('tools')
+            self.check_update_button.invoke()
+            self.update_idletasks()
+            assert self.update_dialog.state() != 'withdrawn'
+            self.show_page('servers')
             self.update_dialog.grab_release()
             self.update_dialog.destroy()
             self.update_dialog=None

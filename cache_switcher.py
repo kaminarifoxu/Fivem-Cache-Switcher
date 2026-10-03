@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.0"
+VERSION = "2.7.1"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -49,6 +49,27 @@ def stable_version(tag):
     return tuple(int(p) for p in parts)
 
 
+def summarize_release_notes(body):
+    """Keep a short, plain-text list from the GitHub release body."""
+    import re
+    if not isinstance(body, str):
+        return ''
+    lines = []
+    for line in body[:16000].splitlines():
+        line = line.strip()
+        if not re.match(r'^[-*+]\s+|^\d+[.)]\s+', line):
+            continue
+        line = re.sub(r'^[-*+]\s+|^\d+[.)]\s+', '', line)
+        line = re.sub(r'\[([^]]+)\]\([^)]*\)', r'\1', line)
+        line = line.replace('**', '').replace('`', '').strip()
+        line = ''.join(c for c in line if c.isprintable())
+        if line:
+            lines.append('• ' + (line[:137] + '…' if len(line) > 140 else line))
+        if len(lines) == 4:
+            break
+    return '\n'.join(lines)
+
+
 def check_latest_release(current=VERSION):
     from urllib.request import Request, urlopen
     from urllib.error import HTTPError
@@ -76,7 +97,7 @@ def check_latest_release(current=VERSION):
     if not isinstance(url, str) or not url.startswith(RELEASES_URL + "/tag/"):
         raise ValueError("Alamat rilis tidak valid")
     from auto_updater import release_asset
-    return {"version": tag.removeprefix("v"), "url": url, **release_asset(release, GITHUB_REPOSITORY)}
+    return {"version": tag.removeprefix("v"), "url": url, "summary": summarize_release_notes(release.get("body")), **release_asset(release, GITHUB_REPOSITORY)}
 
 
 def open_release_page(url):
@@ -946,7 +967,8 @@ def main():
             self.language_selector = language
             updates = ctk.CTkFrame(page, fg_color=CARD, corner_radius=8)
             updates.grid(row=6, column=0, sticky='ew', pady=(0, 14))
-            self.btn(updates, tr('Cek update'), lambda: self.check_updates(manual=True), width=170).pack(side='right', padx=16, pady=16)
+            self.check_update_button = self.btn(updates, tr('Cek update'), self.manual_update_check, width=170)
+            self.check_update_button.pack(side='right', padx=16, pady=16)
             self.update_status = ctk.CTkLabel(updates, text='v' + VERSION, text_color=MUTED, font=(FONT, 11), wraplength=430, justify='left')
             self.update_status.pack(side='left', padx=20, pady=16)
 
@@ -1040,6 +1062,14 @@ def main():
             if not self.latest_release or self.update_installing:
                 self.global_update_button.grid_remove()
 
+        def manual_update_check(self):
+            if self.update_dialog is not None and self.update_dialog.winfo_exists():
+                self.show_update_notice(release=self.latest_release)
+            elif self.update_checking:
+                self.set_update_status(tr('Mengecek update...'))
+            else:
+                self.check_updates(manual=True)
+
         def check_updates(self, manual=False):
             if self.closed or self.update_checking or self.update_installing:
                 return
@@ -1060,11 +1090,13 @@ def main():
         def show_update_notice(self, release=None, error=None):
             if self.closed:
                 return
+            if self.update_dialog is not None and self.update_dialog.winfo_exists():
+                self.update_dialog.deiconify()
+                self.update_dialog.lift()
+                self.update_dialog.focus_force()
+                return
             if self.busy or self.grab_current() is not None:
                 self.after(500, lambda: self.show_update_notice(release, error))
-                return
-            if self.update_dialog is not None and self.update_dialog.winfo_exists():
-                self.update_dialog.lift()
                 return
             dialog = self.update_dialog = ctk.CTkToplevel(self)
             dialog.withdraw()
@@ -1076,7 +1108,7 @@ def main():
             scale = ctk.ScalingTracker.get_window_scaling(dialog)
             x = self.winfo_rootx() + (self.winfo_width() - round(540 * scale)) // 2
             y = self.winfo_rooty() + (self.winfo_height() - round(540 * scale)) // 2
-            dialog.geometry(f'540x540+{max(0, x)}+{max(0, y)}')
+            dialog.geometry(f'540x650+{max(0, x)}+{max(0, y)}')
 
             def close(event=None):
                 if self.update_installing:
@@ -1134,6 +1166,11 @@ def main():
             else:
                 description = tr('Kamu bisa melanjutkan menggunakan aplikasi. Kami akan memberi notifikasi ketika rilis baru tersedia di GitHub.')
             ctk.CTkLabel(shell, text=description, text_color=MUTED, font=(FONT, 12), justify='left', anchor='w', wraplength=480).pack(fill='x', padx=28, pady=(0, 10))
+            if release:
+                ctk.CTkLabel(shell, text=tr('Yang baru'), text_color=GOLD, font=(FONT, 12, 'bold'), anchor='w').pack(fill='x', padx=28, pady=(0, 4))
+                summary = release.get('summary') or tr('Ringkasan belum tersedia. Lihat catatan rilis di GitHub.')
+                self.release_summary_label = ctk.CTkLabel(shell, text=summary, text_color=WHITE, font=(FONT, 11), wraplength=475, justify='left', anchor='w')
+                self.release_summary_label.pack(fill='x', padx=28, pady=(0, 8))
             ctk.CTkLabel(shell, text='© 2026 GANOMABI / amiinarii', text_color='#786757', font=(FONT, 10)).pack(side='bottom', pady=(0, 14))
             row = ctk.CTkFrame(shell, fg_color='transparent')
             row.pack(side='bottom', fill='x', padx=26, pady=(6, 12))
@@ -1182,7 +1219,6 @@ def main():
                 dialog.deiconify()
                 dialog.lift()
                 dialog.attributes('-topmost', True)
-                dialog.grab_set()
                 primary.focus_set()
                 def release_topmost():
                     if dialog.winfo_exists():

@@ -30,3 +30,5 @@ EN.update({'BAHASA APLIKASI': 'APP LANGUAGE', 'pemain': 'players', 'Jumlah pemai
 EN.update({'List server': 'Server list', 'Pilih server dan hubungkan melalui FiveM.': 'Choose a server and connect through FiveM.', 'Belum tersedia': 'Unavailable'})
 
 EN.update({'Sebelumnya': 'Previous', 'Berikutnya': 'Next', 'Halaman': 'Page'})
+
+EN.update({'Yang baru': 'What’s new', 'Ringkasan belum tersedia. Lihat catatan rilis di GitHub.': 'No summary is available. See the release notes on GitHub.'})

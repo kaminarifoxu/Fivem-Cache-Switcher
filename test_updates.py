@@ -26,6 +26,16 @@ class UpdateTests(unittest.TestCase):
     def test_newer_release_and_numeric_comparison(self):
         self.assertEqual(self.check(self.release("v2.10.0"), "2.9.0")["version"], "2.10.0")
 
+    def test_release_summary_uses_body(self):
+        result=self.check(self.release(body='# v2.4.0\n\n- **New theme**\n- [Tools](https://example.com) update button'))
+        self.assertEqual(result['summary'],'• New theme\n• Tools update button')
+
+    def test_release_summary_is_bounded_and_handles_missing(self):
+        self.assertEqual(app.summarize_release_notes(None),'')
+        text=app.summarize_release_notes('\n'.join('- '+ 'a'*300 for _ in range(10)))
+        self.assertEqual(len(text.splitlines()),4)
+        self.assertLess(len(text),600)
+
     def test_equal_and_older_versions(self):
         self.assertIsNone(self.check(self.release("v2.3.0")))
         self.assertIsNone(self.check(self.release("v2.2.0")))
