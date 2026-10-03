@@ -11,6 +11,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Sync published release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          foreach ($file in Get-ChildItem release-notes/v*.md) {
+            $tag = $file.BaseName
+            gh release view $tag *> $null
+            if ($LASTEXITCODE -eq 0) {
+              gh release edit $tag --notes-file $file.FullName
+              if ($LASTEXITCODE -ne 0) { throw "Cannot update notes for $tag" }
+            }
+          }
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
@@ -31,5 +44,7 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) { throw 'Tag must match VERSION' }
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) { Write-Host "Release already exists; build artifact is available."; exit 0 }
-          gh release create $tag dist/GanoV-Cache-Switch.exe --target $env:GITHUB_SHA --title "GanoV-Cache-Switch $tag" --notes "Copyright (c) 2026 GANOMABI / amiinarii. Pengaturan disimpan otomatis di LOCALAPPDATA dan konfigurasi lama diimpor saat pertama digunakan."
+          $notes = "release-notes/$tag.md"
+          if (-not (Test-Path $notes)) { throw "Create $notes before publishing this version" }
+          gh release create $tag dist/GanoV-Cache-Switch.exe --target $env:GITHUB_SHA --title "GanoV-Cache-Switch $tag" --notes-file $notes
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
