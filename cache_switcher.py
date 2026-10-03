@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.4.0"
+VERSION = "2.4.1"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -497,7 +497,7 @@ def set_dns(adapter, choice):
 
 def main():
     import customtkinter as ctk
-    from tkinter import messagebox, filedialog, PhotoImage, Label
+    from tkinter import messagebox, filedialog, PhotoImage, Label, Canvas
     ctk.set_appearance_mode("dark")
     BG, CARD, LINE = "#0d0b0d", "#191518", "#3b292e"
     RED, GOLD, MUTED, WHITE = "#b82736", "#e9bc70", "#ad999f", "#f5ece3"
@@ -603,7 +603,16 @@ def main():
             self.btn(side, "Cek update", lambda: self.check_updates(manual=True)).pack(fill="x", padx=22, pady=(8, 0))
             self.update_status = ctk.CTkLabel(side, text="", text_color=MUTED, font=(FONT, 10), wraplength=202)
             self.update_status.pack(padx=24, pady=4)
-            self.art(side, "mini", "#161014").pack(side="bottom", pady=(0, 3))
+            links = ctk.CTkFrame(side, fg_color="transparent")
+            links.pack(fill="x", padx=22, pady=(2, 6))
+            self.btn(links, "GitHub", lambda: self.open_link("https://github.com/" + GITHUB_REPOSITORY), width=98, height=34).pack(side="left")
+            self.btn(links, "Donasi", lambda: self.open_link("https://saweria.co/itsaminarii"), primary=True, width=98, height=34).pack(side="right")
+            mini = self.art(side, "mini", "#161014")
+            scale = ctk.ScalingTracker.get_widget_scaling(self)
+            suffix = "1" if scale <= 1.1 else "125" if scale <= 1.35 else "150" if scale <= 1.7 else "2"
+            self.images["compact_mini"] = self.images["mini_" + suffix].subsample(2, 2)
+            mini.configure(image=self.images["compact_mini"])
+            mini.pack(side="bottom", pady=(0, 3))
             ctk.CTkLabel(side, text=COPYRIGHT, text_color=MUTED, font=(FONT, 9), wraplength=210).pack(side="bottom", pady=(8, 0))
             ctk.CTkLabel(side, text="GANOMABI  /  v" + VERSION, text_color=GOLD, font=(FONT, 10, "bold")).pack(side="bottom", pady=(12, 0))
 
@@ -642,6 +651,53 @@ def main():
                 self.images[key] = PhotoImage(master=self, file=os.path.join(assets, "ui", key + ".png"))
             return Label(parent, image=self.images[key], bg=background, bd=0, highlightthickness=0)
 
+        def open_link(self, url):
+            import webbrowser
+            try:
+                if not webbrowser.open(url):
+                    raise RuntimeError("Browser tidak dapat dibuka.\n" + url)
+            except Exception as exc:
+                messagebox.showerror("Buka tautan", str(exc), parent=self)
+
+        def animated_art(self, parent, name, background, page):
+            import math
+            label = self.art(parent, name, background)
+            scale = ctk.ScalingTracker.get_widget_scaling(self)
+            suffix = "1" if scale <= 1.1 else "125" if scale <= 1.35 else "150" if scale <= 1.7 else "2"
+            picture = self.images[name + "_" + suffix]
+            label.destroy()
+            width, height = picture.width(), picture.height()
+            canvas = Canvas(parent, width=width, height=height, bg=background, bd=0, highlightthickness=0)
+            # Small gold embers surround the original artwork; no image asset is modified.
+            motes = [canvas.create_oval(0, 0, 2, 2, fill="#98733e", outline="") for _ in range(10)]
+            artwork = canvas.create_image(width/2, height/2, image=picture)
+            animate = True
+            if os.name == "nt":
+                enabled = ctypes.c_int(1)
+                if ctypes.windll.user32.SystemParametersInfoW(0x1042, 0, ctypes.byref(enabled), 0):
+                    animate = bool(enabled.value)
+            start = time.monotonic()
+            def tick():
+                if self.closed or not canvas.winfo_exists():
+                    return
+                visible = self.page == page and self.state() != "iconic"
+                if animate and visible:
+                    elapsed = time.monotonic() - start
+                    canvas.coords(artwork, width/2, height/2 + math.sin(elapsed * 1.3) * 2 * scale)
+                    for index, mote in enumerate(motes):
+                        x = ((index * 47 + math.sin(elapsed*.5 + index)*10) % max(1, width-12)) + 6
+                        y = height - ((elapsed*12*scale + index*29) % max(1, height-12)) - 6
+                        radius = (1 + index % 2) * scale
+                        canvas.coords(mote, x-radius, y-radius, x+radius, y+radius)
+                    self.after(50, tick)
+                elif animate:
+                    self.after(250, tick)
+                else:
+                    for mote in motes:
+                        canvas.itemconfigure(mote, state="hidden")
+            self.after(50, tick)
+            return canvas
+
         def btn(self, parent, text, command, primary=False, width=150, height=38):
             def guarded():
                 if not self.busy:
@@ -676,7 +732,7 @@ def main():
             left.grid(row=0, column=0, sticky="w", padx=(20, 0), pady=(0, 8))
             self.art(left, "hero", "#211219").pack(anchor="w")
             ctk.CTkLabel(left, text="SATU KOMUNITAS. BANYAK KOTA.", font=(FONT, 11, "bold"), text_color=GOLD).pack(anchor="w", padx=12, pady=(0, 3))
-            self.art(hero, "hero_fox", "#211219").grid(row=0, column=1, padx=(4, 18), pady=12)
+            self.animated_art(hero, "hero_fox", "#211219", "cache").grid(row=0, column=1, padx=(4, 18), pady=12)
             summary = ctk.CTkFrame(page, fg_color=CARD, border_color=LINE, border_width=1, corner_radius=14)
             summary.grid(row=1, column=0, sticky="ew", pady=(0, 16))
             summary.grid_columnconfigure(1, weight=1)
@@ -739,7 +795,7 @@ def main():
             self.dns_choice = ctk.CTkOptionMenu(dr, values=["Default (ISP)", "Cloudflare", "Google"], width=165, fg_color="#30222a", button_color="#6d2e3b", button_hover_color=RED, font=(FONT, 12))
             self.dns_choice.pack(side="left", padx=12)
             self.btn(dr, "Terapkan DNS", self.dns, primary=True, width=140).pack(side="right")
-            self.art(page, "tools", BG).grid(row=5, column=0, pady=(0, 0))
+            self.animated_art(page, "tools", BG, "tools").grid(row=5, column=0, pady=(0, 0))
 
         def poll(self):
             while self.results:
