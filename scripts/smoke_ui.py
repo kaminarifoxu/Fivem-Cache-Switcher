@@ -22,7 +22,7 @@ def automated_loop(self):
     def verify():
         try:
             assert self.nav["servers"].cget("text") == "Daftar server"
-            assert len(self.wallpaper_layers) == 5
+            assert len(self.wallpaper_layers) >= 5
 
             def verify_wallpaper_resize():
                 import tkinter as tk

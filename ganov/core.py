@@ -10,7 +10,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.10"
+VERSION = "2.7.11"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"

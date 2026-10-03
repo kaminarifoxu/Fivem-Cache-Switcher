@@ -31,7 +31,7 @@ def main():
     from .server_catalog import load_catalog, sync_catalog, connect_uri
     from .server_status import fetch_statuses, page_url
     from .server_icons import fetch_icons
-    from .wallpaper import Wallpaper
+    from .wallpaper import Wallpaper, WallpaperText
 
     ui_settings_path = os.path.join(
         os.path.dirname(user_config_path()), "ui_settings.json"
@@ -62,6 +62,20 @@ def main():
         else os.path.dirname(os.path.abspath(__file__))
     )
     assets = os.path.join(getattr(sys, "_MEIPASS", base), "assets")
+
+    def text_label(parent, **kwargs):
+        current = parent
+        while current is not None:
+            layer = getattr(current, "_wallpaper_layer", None)
+            if layer:
+                return WallpaperText(parent, layer, **kwargs)
+            try:
+                if current.cget("fg_color") != "transparent":
+                    break
+            except Exception:
+                break
+            current = current.master
+        return ctk.CTkLabel(parent, **kwargs)
 
     class App(ctk.CTk):
 
@@ -221,20 +235,16 @@ def main():
             self.sidebar = side
             side.grid(row=0, column=0, sticky="nsew")
             add_wallpaper(side)
-            brand = self.art(side, "mini", app_theme.color("#efe0c7"))
-            scale = ctk.ScalingTracker.get_widget_scaling(self)
-            suffix = (
-                "1"
-                if scale <= 1.1
-                else "125" if scale <= 1.35 else "150" if scale <= 1.7 else "2"
-            )
-            self.images["compact_brand"] = self.images["mini_" + suffix].subsample(2, 2)
-            brand.configure(image=self.images["compact_brand"])
+            from PIL import Image
+
+            brand = WallpaperText(side, side._wallpaper_layer, width=100, height=64)
+            with Image.open(os.path.join(assets, "ganomabi.ico")) as logo:
+                brand.art_image = logo.convert("RGBA")
             brand.pack(pady=(24, 8))
-            ctk.CTkLabel(
+            text_label(
                 side, text=APP_NAME, text_color=GOLD, font=(FONT, 16, "bold")
             ).pack(pady=(0, 3))
-            ctk.CTkLabel(
+            text_label(
                 side,
                 text="FiveM Launcher & Profiles",
                 text_color=MUTED,
@@ -271,10 +281,10 @@ def main():
                 width=98,
                 height=34,
             ).pack(side="right")
-            ctk.CTkLabel(
+            text_label(
                 side, text=COPYRIGHT, text_color=MUTED, font=(FONT, 9), wraplength=210
             ).pack(side="bottom", pady=(8, 0))
-            ctk.CTkLabel(
+            text_label(
                 side,
                 text="GANOMABI  /  v" + VERSION,
                 text_color=GOLD,
@@ -296,13 +306,16 @@ def main():
                 page.grid(row=0, column=0, sticky="nsew")
                 self.pages[name] = page
                 add_wallpaper(page)
+                if name == "tools":
+                    add_wallpaper(page._parent_canvas)
             self.build_cache(self.pages["cache"])
             self.build_tools(self.pages["tools"])
             self.build_servers(self.pages["servers"])
             footer = ctk.CTkFrame(body, fg_color="transparent", height=28)
             footer.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+            add_wallpaper(footer)
             footer.grid_columnconfigure(0, weight=1)
-            self.feedback = ctk.CTkLabel(
+            self.feedback = text_label(
                 footer,
                 text=tr("Siap. Pilih FiveM.exe untuk menghubungkan instalasimu."),
                 anchor="w",
@@ -328,7 +341,7 @@ def main():
                 row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0)
             )
             self.update_banner.grid_columnconfigure(0, weight=1)
-            self.global_update_label = ctk.CTkLabel(
+            self.global_update_label = text_label(
                 self.update_banner,
                 text="",
                 text_color=GOLD,
@@ -445,10 +458,10 @@ def main():
         def build_servers(self, page):
             page.grid_columnconfigure(0, weight=1)
             page.grid_rowconfigure(3, weight=1)
-            ctk.CTkLabel(
+            text_label(
                 page, text=tr("List server"), font=(FONT, 24, "bold"), text_color=WHITE
             ).grid(row=0, column=0, sticky="w")
-            ctk.CTkLabel(
+            text_label(
                 page,
                 text=tr("Pilih server dan hubungkan melalui FiveM."),
                 font=(FONT, 12),
@@ -458,7 +471,8 @@ def main():
             ).grid(row=1, column=0, sticky="w", pady=(4, 16))
             row = ctk.CTkFrame(page, fg_color="transparent")
             row.grid(row=2, column=0, sticky="ew", pady=(0, 14))
-            self.catalog_status = ctk.CTkLabel(
+            self.add_wallpaper(row)
+            self.catalog_status = text_label(
                 row, text="", font=(FONT, 11), text_color=MUTED
             )
             self.catalog_status.pack(side="left")
@@ -484,7 +498,7 @@ def main():
                 width=110,
                 height=30,
             ).pack(side="left")
-            self.server_page_label = ctk.CTkLabel(
+            self.server_page_label = text_label(
                 pager, text="", text_color=MUTED, font=(FONT, 11)
             )
             self.server_page_label.pack(side="left", expand=True)
@@ -854,7 +868,7 @@ def main():
         def build_cache(self, page):
             page.grid_columnconfigure(0, weight=1)
             page.grid_rowconfigure(3, weight=1)
-            ctk.CTkLabel(
+            text_label(
                 page, text=tr("Profil kota"), font=(FONT, 24, "bold"), text_color=WHITE
             ).grid(row=0, column=0, sticky="w", pady=(0, 18))
             summary = ctk.CTkFrame(
@@ -867,14 +881,14 @@ def main():
             )
             text = ctk.CTkFrame(summary, fg_color="transparent")
             text.grid(row=0, column=1, sticky="ew", padx=8, pady=14)
-            ctk.CTkLabel(
+            text_label(
                 text,
                 text=tr("CACHE AKTIF"),
                 text_color=MUTED,
                 font=(FONT, 10, "bold"),
                 anchor="w",
             ).pack(fill="x")
-            self.status = ctk.CTkLabel(
+            self.status = text_label(
                 text,
                 text="",
                 font=(FONT, 19, "bold"),
@@ -884,23 +898,23 @@ def main():
                 justify="left",
             )
             self.status.pack(fill="x", pady=(3, 0))
-            self.connection = ctk.CTkLabel(
+            self.connection = text_label(
                 text, text="", text_color=MUTED, font=(FONT, 10), anchor="w"
             )
             self.connection.pack(fill="x")
             stats = ctk.CTkFrame(summary, fg_color="transparent")
             stats.grid(row=0, column=2, padx=20, pady=15)
-            self.metric_count = ctk.CTkLabel(
+            self.metric_count = text_label(
                 stats, text=tr("0 PROFIL"), text_color=WHITE, font=(FONT, 13, "bold")
             )
             self.metric_count.pack(anchor="e")
-            self.metric_size = ctk.CTkLabel(
+            self.metric_size = text_label(
                 stats, text=tr("0 B tersimpan"), text_color=MUTED, font=(FONT, 10)
             )
             self.metric_size.pack(anchor="e", pady=(4, 0))
             row = ctk.CTkFrame(page, fg_color="transparent")
             row.grid(row=2, column=0, sticky="ew", pady=(0, 10))
-            self.count = ctk.CTkLabel(
+            self.count = text_label(
                 row, text=tr("PROFIL KOTA"), font=(FONT, 14, "bold"), text_color=WHITE
             )
             self.count.pack(side="left")
@@ -917,7 +931,7 @@ def main():
             )
             self.list.grid(row=3, column=0, sticky="nsew")
             self.list.grid_columnconfigure((0, 1, 2), weight=1, uniform="profiles")
-            self.path_label = ctk.CTkLabel(
+            self.path_label = text_label(
                 page,
                 text="",
                 anchor="w",
@@ -927,7 +941,7 @@ def main():
                 justify="left",
             )
             self.path_label.grid(row=4, column=0, sticky="ew", pady=(9, 0))
-            ctk.CTkLabel(
+            text_label(
                 page,
                 text=tr(
                     "Tutup FiveM sebelum switch. Cache kota disimpan secara terpisah."
@@ -939,10 +953,10 @@ def main():
 
         def build_tools(self, page):
             page.grid_columnconfigure((0, 1), weight=1, uniform="tools")
-            ctk.CTkLabel(
+            text_label(
                 page, text=tr("PERALATAN"), font=(FONT, 24, "bold"), text_color=WHITE
             ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
-            ctk.CTkLabel(
+            text_label(
                 page,
                 text=tr("Kontrol instalasi, file sementara, dan jaringanmu."),
                 text_color=MUTED,
@@ -970,7 +984,7 @@ def main():
                     pady=(0, 12),
                 )
                 panel.grid_columnconfigure((0, 1), weight=1)
-                ctk.CTkLabel(
+                text_label(
                     panel,
                     text=title,
                     font=(FONT, 13, "bold"),
@@ -982,7 +996,7 @@ def main():
                 return panel
 
             install = card(2, 0, tr("INSTALASI & PEMULIHAN"), 2)
-            self.exe_label = ctk.CTkLabel(
+            self.exe_label = text_label(
                 install,
                 text="",
                 text_color=MUTED,
@@ -1012,14 +1026,14 @@ def main():
                     row=0, column=column, sticky="ew", padx=(0, 8) if column < 2 else 0
                 )
             settings = card(3, 0, tr("Pengaturan aplikasi"), 2)
-            ctk.CTkLabel(
+            text_label(
                 settings,
                 text=tr("BAHASA APLIKASI"),
                 text_color=MUTED,
                 font=(FONT, 10),
                 anchor="w",
             ).grid(row=1, column=0, sticky="w", padx=16)
-            ctk.CTkLabel(
+            text_label(
                 settings,
                 text=tr("TEMA APLIKASI"),
                 text_color=MUTED,
@@ -1057,7 +1071,7 @@ def main():
             self.theme_selector.grid(
                 row=2, column=1, sticky="ew", padx=16, pady=(2, 12)
             )
-            self.update_status = ctk.CTkLabel(
+            self.update_status = text_label(
                 settings,
                 text="v" + VERSION,
                 text_color=MUTED,
@@ -1078,7 +1092,7 @@ def main():
                 row=3, column=1, sticky="ew", padx=16, pady=(0, 14)
             )
             temp = card(4, 0, tr("File sementara"))
-            ctk.CTkLabel(
+            text_label(
                 temp,
                 text=tr("Bersihkan file sementara. File terkunci akan dilewati."),
                 text_color=MUTED,
