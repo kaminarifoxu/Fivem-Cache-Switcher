@@ -290,6 +290,13 @@ def main():
                 text_color=GOLD,
                 font=(FONT, 10, "bold"),
             ).pack(side="bottom", pady=(12, 0))
+            self.sidebar_chibi = WallpaperText(
+                side, side._wallpaper_layer, width=175, height=180
+            )
+            with Image.open(os.path.join(assets, "chibi.png")) as character:
+                self.sidebar_chibi.art_image = character.convert("RGBA")
+            self.sidebar_chibi.art_size = (160, 170)
+            self.sidebar_chibi.pack(side="bottom", pady=(10, 4))
             body = ctk.CTkFrame(self, fg_color="transparent")
             body.grid(row=0, column=1, sticky="nsew", padx=24, pady=(20, 14))
             body.grid_columnconfigure(0, weight=1)
@@ -914,6 +921,7 @@ def main():
             self.metric_size.pack(anchor="e", pady=(4, 0))
             row = ctk.CTkFrame(page, fg_color="transparent")
             row.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+            self.add_wallpaper(row)
             self.count = text_label(
                 row, text=tr("PROFIL KOTA"), font=(FONT, 14, "bold"), text_color=WHITE
             )

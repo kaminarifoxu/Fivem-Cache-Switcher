@@ -23,6 +23,8 @@ def automated_loop(self):
         try:
             assert self.nav["servers"].cget("text") == "Daftar server"
             assert len(self.wallpaper_layers) >= 5
+            assert self.sidebar_chibi.art_image.mode == "RGBA"
+            assert self.sidebar_chibi.art_size == (160, 170)
 
             def verify_wallpaper_resize():
                 import tkinter as tk

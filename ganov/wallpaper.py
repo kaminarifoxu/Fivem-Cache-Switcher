@@ -142,8 +142,9 @@ class WallpaperText(tk.Canvas):
             import customtkinter as ctk
 
             scale = ctk.ScalingTracker.get_widget_scaling(self.master)
+            art_width, art_height = getattr(self, "art_size", (90, 60))
             icon = ImageOps.contain(
-                self.art_image, (round(90 * scale), round(60 * scale))
+                self.art_image, (round(art_width * scale), round(art_height * scale))
             )
             self.art_photo = ImageTk.PhotoImage(icon, master=self)
             self.create_image(width / 2, height / 2, image=self.art_photo)
