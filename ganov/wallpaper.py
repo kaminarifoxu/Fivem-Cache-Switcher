@@ -12,14 +12,19 @@ class Wallpaper:
             self.source = source.convert("RGB")
         self.source = ImageEnhance.Color(self.source).enhance(0.65)
         self.theme = theme
-        self.label = tk.Label(parent, borderwidth=0, highlightthickness=0)
+        self.label = tk.Label(
+            parent,
+            borderwidth=0,
+            highlightthickness=0,
+            background="#101113" if theme == "dark" else "#f7f0e3",
+        )
         self.label.place(x=0, y=0, relwidth=1, relheight=1)
-        self.binding = parent.bind("<Configure>", self.schedule, add="+")
+        self.binding = self.label.bind("<Configure>", self.schedule, add="+")
         self.label.bind("<Destroy>", self.cleanup, add="+")
         self.schedule()
 
     def schedule(self, event=None):
-        if event is not None and event.widget is not self.parent:
+        if event is not None and event.widget is not self.label:
             return
         if self.pending:
             self.parent.after_cancel(self.pending)
@@ -29,7 +34,7 @@ class Wallpaper:
         self.pending = None
         if not self.label.winfo_exists():
             return
-        size = (max(1, self.parent.winfo_width()), max(1, self.parent.winfo_height()))
+        size = (max(1, self.label.winfo_width()), max(1, self.label.winfo_height()))
         image = ImageOps.fit(self.source, size, method=Image.Resampling.LANCZOS)
         tint = "#101113" if self.theme == "dark" else "#f7f0e3"
         # Strong tint keeps the artwork soft and the interface readable.
@@ -46,5 +51,5 @@ class Wallpaper:
             self.parent.after_cancel(self.pending)
             self.pending = None
         if self.binding:
-            self.parent.unbind("<Configure>", self.binding)
+            self.label.unbind("<Configure>", self.binding)
             self.binding = None

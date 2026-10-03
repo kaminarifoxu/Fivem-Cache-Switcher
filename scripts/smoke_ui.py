@@ -23,9 +23,31 @@ def automated_loop(self):
         try:
             assert self.nav["servers"].cget("text") == "Daftar server"
             assert len(self.wallpaper_layers) == 5
-            for layer in self.wallpaper_layers:
-                layer.paint()
-                assert layer.photo.width() > 0
+
+            def verify_wallpaper_resize():
+                import tkinter as tk
+
+                self.update_idletasks()
+                finished = tk.BooleanVar(master=self, value=False)
+                self.after(350, lambda: finished.set(True))
+                self.wait_variable(finished)
+                for layer in self.wallpaper_layers:
+                    if layer.label.winfo_viewable():
+                        assert (
+                            layer.photo.width() == layer.label.winfo_width()
+                        ), "wallpaper leaves unpainted horizontal area"
+                        assert (
+                            layer.photo.height() == layer.label.winfo_height()
+                        ), "wallpaper leaves unpainted vertical area"
+                        assert layer.label.cget("background") == (
+                            "#101113" if layer.theme == "dark" else "#f7f0e3"
+                        )
+
+            verify_wallpaper_resize()
+            self.geometry("1040x760")
+            verify_wallpaper_resize()
+            self.geometry("1180x820")
+            verify_wallpaper_resize()
             assert self.language_selector.master.master is self.pages["tools"]
             assert self.exe_label.master.master is self.pages["tools"]
             assert self.update_status.master.master is self.pages["tools"]
@@ -60,6 +82,7 @@ def automated_loop(self):
             assert switched == ["test0"], "profile card activates the wrong city"
             self.switch = original_switch
             self.change_theme("Gelap")
+            verify_wallpaper_resize()
             assert len(self.list.winfo_children()) == 7
             self.change_theme("Terang")
             self.store.profiles = original_profiles

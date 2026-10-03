@@ -16,6 +16,14 @@ def install(app, output):
 
     def click():
         try:
+            for layer in app.wallpaper_layers:
+                if layer.label.winfo_viewable():
+                    assert (
+                        layer.photo.width() == layer.label.winfo_width()
+                    ), "Packaged wallpaper width mismatch"
+                    assert (
+                        layer.photo.height() == layer.label.winfo_height()
+                    ), "Packaged wallpaper height mismatch"
             app.latest_release = {"version": "99.0.0", "summary": "• Packaged UI test"}
             app.set_update_status("Update available: v99.0.0")
             from PIL import Image
