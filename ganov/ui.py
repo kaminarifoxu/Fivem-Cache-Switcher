@@ -31,6 +31,7 @@ def main():
     from .server_catalog import load_catalog, sync_catalog, connect_uri
     from .server_status import fetch_statuses, page_url
     from .server_icons import fetch_icons
+    from .wallpaper import Wallpaper
 
     ui_settings_path = os.path.join(
         os.path.dirname(user_config_path()), "ui_settings.json"
@@ -195,6 +196,22 @@ def main():
             self.after(800, self.check_updates)
 
         def build_main_ui(self):
+            self.wallpaper_layers = []
+
+            def add_wallpaper(parent):
+                try:
+                    self.wallpaper_layers.append(
+                        Wallpaper(
+                            parent,
+                            os.path.join(assets, "wallpaper.jpg"),
+                            app_theme.THEME,
+                        )
+                    )
+                except (OSError, ValueError):
+                    pass
+
+            self.add_wallpaper = add_wallpaper
+            add_wallpaper(self)
             self.grid_columnconfigure(1, weight=1)
             self.grid_rowconfigure(0, weight=1)
             side = ctk.CTkFrame(
@@ -203,6 +220,7 @@ def main():
             side.grid_propagate(False)
             self.sidebar = side
             side.grid(row=0, column=0, sticky="nsew")
+            add_wallpaper(side)
             brand = self.art(side, "mini", app_theme.color("#efe0c7"))
             scale = ctk.ScalingTracker.get_widget_scaling(self)
             suffix = (
@@ -277,6 +295,7 @@ def main():
                 )
                 page.grid(row=0, column=0, sticky="nsew")
                 self.pages[name] = page
+                add_wallpaper(page)
             self.build_cache(self.pages["cache"])
             self.build_tools(self.pages["tools"])
             self.build_servers(self.pages["servers"])

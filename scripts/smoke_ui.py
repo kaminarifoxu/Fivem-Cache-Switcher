@@ -22,6 +22,10 @@ def automated_loop(self):
     def verify():
         try:
             assert self.nav["servers"].cget("text") == "Daftar server"
+            assert len(self.wallpaper_layers) == 5
+            for layer in self.wallpaper_layers:
+                layer.paint()
+                assert layer.photo.width() > 0
             assert self.language_selector.master.master is self.pages["tools"]
             assert self.exe_label.master.master is self.pages["tools"]
             assert self.update_status.master.master is self.pages["tools"]
