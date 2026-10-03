@@ -11,6 +11,9 @@ class UpdateTests(unittest.TestCase):
     def release(self, tag="v2.4.0", **overrides):
         data = {"tag_name": tag, "draft": False, "prerelease": False,
                 "html_url": app.RELEASES_URL + "/tag/" + str(tag)}
+        data['assets'] = [{'name': 'GanoV-Cache-Switch.exe', 'size': 100,
+                           'digest': 'sha256:' + 'a' * 64,
+                           'browser_download_url': 'https://github.com/' + app.GITHUB_REPOSITORY + '/releases/download/' + str(tag) + '/GanoV-Cache-Switch.exe'}]
         data.update(overrides)
         return data
 

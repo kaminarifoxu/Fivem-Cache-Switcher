@@ -1,4 +1,4 @@
-# GanoV-Cache-Switch v2.3.2
+# GanoV-Cache-Switch v2.4.0
 
 **Copyright (c) 2026 GANOMABI / amiinarii.**
 
@@ -19,11 +19,9 @@ EXE dapat dijalankan sendiri. Python dan file PNG terpisah tidak diperlukan; sem
 
 ## Notifikasi update
 
-Dialog cek update dan update tersedia memakai tema GANOMABI dengan header khusus, status versi, tombol tutup, dan tombol unduh. Dialog dapat digeser melalui header, ditutup dengan Escape, atau dikonfirmasi dengan Enter.
+Dialog cek update dan update tersedia memakai tema GANOMABI dengan header khusus, status versi, tombol tutup, dan tombol update. Dialog dapat digeser melalui header, ditutup dengan Escape, atau dikonfirmasi dengan Enter.
 
-Saat dibuka, aplikasi mengecek rilis stabil terbaru dari GitHub di latar belakang. Jika ada versi lebih baru, muncul dialog **Update tersedia** dengan tombol **Unduh update** dan **Nanti**. Tombol **Cek update** di sidebar dapat dipakai kapan saja. Jika internet tidak tersedia, aplikasi tetap berfungsi.
-
-**Unduh update** membuka halaman rilis di browser. Unduh EXE, tutup aplikasi, lalu ganti EXE lama. Pengaturan tetap tersedia saat EXE diganti atau dipindahkan. Pembaruan tidak mengganti EXE secara otomatis.
+Saat dibuka, aplikasi mengecek rilis stabil terbaru dari GitHub di latar belakang. Jika ada versi lebih baru, muncul dialog **Update tersedia** dengan tombol **Update sekarang** mengunduh EXE langsung dengan indikator progres, memeriksa ukuran dan SHA-256 dari aset GitHub, lalu menutup aplikasi, mengganti EXE di lokasi yang sama, dan membuka versi baru. Tidak membuka browser dan tidak membuat salinan EXE bernomor. Pengaturan tetap tersimpan di LocalAppData. Folder EXE harus dapat ditulis; jika pemasangan gagal, aplikasi lama tetap tersedia. Fitur ini tersedia pada EXE Windows v2.4.0 dan berikutnya. Versi lama perlu diganti manual sekali untuk mendapatkan fitur ini.
 
 ### Menerbitkan pembaruan berikutnya
 
@@ -34,7 +32,7 @@ Saat dibuka, aplikasi mengecek rilis stabil terbaru dari GitHub di latar belakan
        git tag v2.4.0
        git push origin v2.4.0
 
-GitHub Actions menjalankan tes, membangun EXE Windows dengan logo/copyright GANOMABI, lalu menerbitkan GitHub Release beserta EXE. Tag harus sama dengan VERSION. Push ke main juga membangun dan menerbitkan rilis jika VERSION belum pernah dirilis. Notifikasi muncul setelah rilis baru terbit. Instal EXE v2.3.2 ini terlebih dahulu untuk menerima notifikasi berikutnya.
+GitHub Actions menjalankan tes, membangun EXE Windows dengan logo/copyright GANOMABI, lalu menerbitkan GitHub Release beserta EXE. Tag harus sama dengan VERSION. Push ke main juga membangun dan menerbitkan rilis jika VERSION belum pernah dirilis. Notifikasi muncul setelah rilis baru terbit. Instal EXE v2.4.0 ini terlebih dahulu untuk menerima notifikasi berikutnya.
 
 ## Deteksi lokasi
 

@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.3.2"
+VERSION = "2.4.0"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -75,7 +75,8 @@ def check_latest_release(current=VERSION):
     url = release.get("html_url", "")
     if not isinstance(url, str) or not url.startswith(RELEASES_URL + "/tag/"):
         raise ValueError("Alamat rilis tidak valid")
-    return {"version": tag.removeprefix("v"), "url": url}
+    from auto_updater import release_asset
+    return {"version": tag.removeprefix("v"), "url": url, **release_asset(release, GITHUB_REPOSITORY)}
 
 
 def open_release_page(url):
@@ -518,6 +519,7 @@ def main():
             self.sizes, self.raw_sizes = {}, {}
             self.size_generation = 0
             self.update_checking = False
+            self.update_installing = False
             self.update_dialog = None
             self.page = "cache"
             self.protocol("WM_DELETE_WINDOW", self.close)
@@ -742,7 +744,26 @@ def main():
         def poll(self):
             while self.results:
                 kind, value = self.results.pop(0)
-                if kind == "update":
+                if kind == "update_progress":
+                    self.update_status.configure(text=f"Mengunduh update: {value:.0%}")
+                    if hasattr(self, "download_progress") and self.download_progress.winfo_exists():
+                        self.download_progress.set(value)
+                        self.download_label.configure(text=f"Mengunduh update... {value:.0%}")
+                elif kind == "update_downloaded":
+                    from auto_updater import start_replacement
+                    try:
+                        start_replacement(value, sys.executable, os.getpid())
+                    except Exception as exc:
+                        import shutil
+                        shutil.rmtree(os.path.dirname(value), ignore_errors=True)
+                        self.finish_update_error(str(exc))
+                    else:
+                        self.closed = True
+                        self.destroy()
+                        return
+                elif kind == "update_failed":
+                    self.finish_update_error(value)
+                elif kind == "update":
                     manual, release, error = value
                     self.update_checking = False
                     if error:
@@ -785,7 +806,7 @@ def main():
                 self.after(100, self.poll)
 
         def check_updates(self, manual=False):
-            if self.closed or self.update_checking:
+            if self.closed or self.update_checking or self.update_installing:
                 return
             self.update_checking = True
             self.update_status.configure(text="Mengecek update...")
@@ -819,9 +840,11 @@ def main():
             dialog.overrideredirect(True)
             scale = ctk.ScalingTracker.get_window_scaling(dialog)
             x = self.winfo_rootx() + (self.winfo_width() - round(540 * scale)) // 2
-            y = self.winfo_rooty() + (self.winfo_height() - round(460 * scale)) // 2
-            dialog.geometry(f"540x460+{max(0, x)}+{max(0, y)}")
+            y = self.winfo_rooty() + (self.winfo_height() - round(540 * scale)) // 2
+            dialog.geometry(f"540x540+{max(0, x)}+{max(0, y)}")
             def close(event=None):
+                if self.update_installing:
+                    return
                 if dialog.winfo_exists():
                     if dialog.grab_current() == dialog:
                         dialog.grab_release()
@@ -855,7 +878,7 @@ def main():
             titles = ctk.CTkFrame(head, fg_color="transparent")
             titles.pack(side="left", fill="x", expand=True)
             title = "Update tersedia" if release else "Cek update gagal" if error else "Versi kamu sudah terbaru"
-            subtitle = "Versi baru siap diunduh." if release else "Coba lagi saat koneksi tersedia." if error else "Belum ada rilis stabil yang lebih baru."
+            subtitle = "Unduh dan pasang langsung dari aplikasi." if release else "Coba lagi saat koneksi tersedia." if error else "Belum ada rilis stabil yang lebih baru."
             ctk.CTkLabel(titles, text=title, anchor="w", text_color=WHITE,
                          font=(FONT, 20, "bold")).pack(fill="x")
             ctk.CTkLabel(titles, text=subtitle, anchor="w", text_color=MUTED,
@@ -870,9 +893,9 @@ def main():
             version_cell(versions, "VERSI TERPASANG", "v" + VERSION, WHITE)
             version_cell(versions, "VERSI BARU" if release else "STATUS", "v" + release["version"] if release else "Offline" if error else "Terkini", GOLD)
             if release:
-                description = "Unduh EXE dari GitHub, tutup aplikasi, lalu ganti EXE lama. Pengaturan dan profil kota tetap tersimpan otomatis."
+                description = "Update diunduh langsung, lalu aplikasi akan ditutup dan dibuka kembali. EXE lama diganti di lokasi yang sama. Pengaturan tetap tersimpan."
             elif error:
-                description = "GitHub belum dapat dihubungi. Periksa koneksi internet, lalu tekan Coba lagi. Aplikasi tetap dapat digunakan."
+                description = "Update belum dapat diselesaikan. " + str(error)[:200]
             else:
                 description = "Kamu bisa melanjutkan menggunakan aplikasi. Kami akan memberi notifikasi ketika rilis baru tersedia di GitHub."
             ctk.CTkLabel(shell, text=description, text_color=MUTED, font=(FONT, 12),
@@ -881,18 +904,35 @@ def main():
                          font=(FONT, 10)).pack(side="bottom", pady=(0, 14))
             row = ctk.CTkFrame(shell, fg_color="transparent")
             row.pack(side="bottom", fill="x", padx=26, pady=(6, 12))
+            self.download_label = ctk.CTkLabel(shell, text="", text_color=GOLD, font=(FONT, 11))
+            self.download_label.pack(fill="x", padx=28)
+            self.download_progress = ctk.CTkProgressBar(shell, progress_color=RED, fg_color=LINE, height=5)
+            self.download_progress.set(0)
+            self.download_progress.pack(fill="x", padx=28, pady=4)
             def download():
-                try:
-                    open_release_page(release["url"])
+                if self.update_installing:
+                    return
+                if os.name != "nt" or not getattr(sys, "frozen", False):
                     close()
-                except Exception as exc:
-                    close()
-                    self.show_update_notice(error=str(exc))
+                    self.show_update_notice(error="Gunakan EXE Windows untuk memasang update otomatis.")
+                    return
+                self.update_installing = True
+                primary.configure(state="disabled", text="Mengunduh...")
+                self.download_label.configure(text="Menyiapkan unduhan...")
+                def worker():
+                    from auto_updater import download_update
+                    try:
+                        path = download_update(release, os.path.dirname(user_config_path()),
+                                               lambda value: self.results.append(("update_progress", value)))
+                        self.results.append(("update_downloaded", path))
+                    except Exception as exc:
+                        self.results.append(("update_failed", str(exc)))
+                threading.Thread(target=worker, daemon=True).start()
             def retry():
                 close()
                 self.check_updates(manual=True)
             action = download if release else retry if error else close
-            label = "Unduh update" if release else "Coba lagi" if error else "Mengerti"
+            label = "Update sekarang" if release else "Coba lagi" if error else "Mengerti"
             primary = ctk.CTkButton(row, text=label, command=action, width=180, height=42,
                                     fg_color=RED, hover_color="#d13747", text_color=WHITE,
                                     corner_radius=9, font=(FONT, 12, "bold"))
@@ -907,6 +947,15 @@ def main():
             dialog.lift()
             dialog.grab_set()
             primary.focus_set()
+
+        def finish_update_error(self, error):
+            self.update_installing = False
+            self.update_status.configure(text="Update gagal. EXE lama tetap tersedia.")
+            if self.update_dialog is not None and self.update_dialog.winfo_exists():
+                self.update_dialog.grab_release()
+                self.update_dialog.destroy()
+            self.update_dialog = None
+            self.show_update_notice(error=error)
 
         def run(self, label, work):
             if self.busy:
@@ -1142,6 +1191,8 @@ def main():
                 self.run("Mengatur DNS...", lambda: (set_dns(adapter, choice), f"DNS {choice} diterapkan ke {adapter}.")[1])
 
         def close(self):
+            if self.update_installing:
+                return
             if self.busy:
                 messagebox.showinfo("Sedang bekerja", "Tunggu operasi selesai sebelum menutup aplikasi.", parent=self)
                 return
