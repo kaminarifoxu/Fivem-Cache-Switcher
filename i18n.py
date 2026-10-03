@@ -36,3 +36,5 @@ EN.update({'Yang baru': 'What’s new', 'Ringkasan belum tersedia. Lihat catatan
 EN.update({'TEMA APLIKASI': 'APP THEME', 'Terang': 'Light', 'Gelap': 'Dark'})
 
 EN.update({'Membuka panel update...': 'Opening update panel...'})
+
+EN.update({'Pengaturan aplikasi':'App settings','File sementara':'Temporary files','Jaringan DNS':'DNS network'})
