@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.4.1"
+VERSION = "2.4.2"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -808,7 +808,7 @@ def main():
                 elif kind == "update_downloaded":
                     from auto_updater import start_replacement
                     try:
-                        start_replacement(value, sys.executable, os.getpid())
+                        start_replacement(value, sys.executable, os.getpid(), os.getppid())
                     except Exception as exc:
                         import shutil
                         shutil.rmtree(os.path.dirname(value), ignore_errors=True)

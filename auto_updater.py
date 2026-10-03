@@ -66,7 +66,7 @@ def ps_literal(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def replacement_script(staged, executable, process_id):
+def replacement_script(staged, executable, process_id, bootloader_id=None):
     # All paths are literal PowerShell strings; no shell interpolation.
     template = '''$ErrorActionPreference = 'Stop'
 $source = SOURCE
@@ -77,6 +77,9 @@ $backup = $target + '.update-backup'
 try {
     $running = Get-Process -Id PROCESS_ID -ErrorAction SilentlyContinue
     if ($running -and -not $running.WaitForExit(120000)) { throw 'Aplikasi lama belum ditutup.' }
+    $loader = Get-Process -Id BOOTLOADER_ID -ErrorAction SilentlyContinue
+    if ($loader -and -not $loader.WaitForExit(120000)) { throw 'Runtime aplikasi lama belum ditutup.' }
+    $env:PYINSTALLER_RESET_ENVIRONMENT = '1'
     Copy-Item -LiteralPath $source -Destination $incoming -Force
     $installed = $false
     for ($attempt = 0; $attempt -lt 60; $attempt++) {
@@ -103,20 +106,23 @@ try {
     Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
 }
 '''
-    values = {'SOURCE': ps_literal(staged), 'TARGET': ps_literal(executable), 'PROCESS_ID': str(int(process_id))}
-    return re.sub(r'\b(SOURCE|TARGET|PROCESS_ID)\b', lambda match: values[match.group()], template)
+    values = {'SOURCE': ps_literal(staged), 'TARGET': ps_literal(executable), 'PROCESS_ID': str(int(process_id)),
+              'BOOTLOADER_ID': str(int(bootloader_id or process_id))}
+    return re.sub(r'\b(SOURCE|TARGET|PROCESS_ID|BOOTLOADER_ID)\b', lambda match: values[match.group()], template)
 
 
-def start_replacement(staged, executable, process_id):
+def start_replacement(staged, executable, process_id, bootloader_id=None):
     if os.name != 'nt':
         raise RuntimeError('Pemasangan otomatis tersedia pada EXE Windows.')
     parent = Path(executable).resolve().parent
     # Fail before closing the app if its directory is read-only.
     with tempfile.TemporaryFile(dir=parent):
         pass
-    script = replacement_script(staged, executable, process_id)
+    script = replacement_script(staged, executable, process_id, bootloader_id)
     encoded = base64.b64encode(script.encode('utf-16le')).decode('ascii')
     powershell = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    environment = {key: value for key, value in os.environ.items() if not key.startswith('_PYI_')}
+    environment['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
     return subprocess.Popen([str(powershell), '-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-                            cwd=parent, close_fds=True,
+                            cwd=parent, close_fds=True, env=environment,
                             creationflags=0x08000000 | 0x00000200)
