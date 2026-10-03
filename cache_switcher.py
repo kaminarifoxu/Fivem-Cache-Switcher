@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.3"
+VERSION = "2.7.4"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -555,6 +555,13 @@ def main():
             self.latest_release = None
             self.page = 'cache'
             self.ui_started = False
+            self.page_animation = None
+            self.page_animation_generation = 0
+            self.animations_enabled = True
+            if os.name == 'nt':
+                enabled = ctypes.c_int(1)
+                if ctypes.windll.user32.SystemParametersInfoW(4162, 0, ctypes.byref(enabled), 0):
+                    self.animations_enabled = bool(enabled.value)
             self.catalog_syncing = False
             self.server_statuses = {}
             self.status_syncing = False
@@ -906,14 +913,36 @@ def main():
         def show_page(self, name):
             if self.busy:
                 return
+            changed = self.page != name
             self.page = name
+            self.page_animation_generation += 1
+            generation = self.page_animation_generation
+            if self.page_animation is not None:
+                self.after_cancel(self.page_animation)
+                self.page_animation = None
             for key, page in self.pages.items():
                 if key == name:
-                    page.grid()
+                    page.grid(padx=0)
                 else:
                     page.grid_remove()
-            for key, b in self.nav.items():
-                b.configure(fg_color=app_theme.color('#ead3b2') if key == name else 'transparent', text_color=GOLD if key == name else WHITE)
+            for key, button in self.nav.items():
+                button.configure(fg_color=app_theme.color('#ead3b2') if key == name else 'transparent', text_color=GOLD if key == name else WHITE)
+            if not changed or not self.animations_enabled:
+                return
+            page = self.pages[name]
+            started = time.monotonic()
+            def animate():
+                if self.closed or generation != self.page_animation_generation or not page.winfo_exists():
+                    return
+                progress = min(1.0, (time.monotonic() - started) / .18)
+                offset = round(14 * (1 - progress) ** 3)
+                page.grid_configure(padx=(offset, 0))
+                if progress < 1:
+                    self.page_animation = self.after(16, animate)
+                else:
+                    page.grid_configure(padx=0)
+                    self.page_animation = None
+            animate()
 
         def build_cache(self, page):
             page.grid_columnconfigure(0, weight=1)

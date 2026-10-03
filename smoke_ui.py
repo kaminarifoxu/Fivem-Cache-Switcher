@@ -32,6 +32,16 @@ def automated_loop(self):
             assert 'Pilih FiveM.exe' not in labels(self.sidebar)
             assert 'Cek update' not in labels(self.sidebar)
             assert 'List server' in labels(self.pages['servers'])
+            self.animations_enabled=True
+            self.show_page('servers')
+            self.show_page('cache')
+            self.show_page('tools')
+            import tkinter as tk
+            done=tk.BooleanVar(master=self,value=False)
+            self.after(300,lambda:done.set(True))
+            self.wait_variable(done)
+            assert self.page_animation is None
+            assert self.page=='tools'
             self.show_page('servers')
             assert not isinstance(self.server_list, ctk.CTkScrollableFrame)
             assert len(self.server_list.winfo_children()) == 9
