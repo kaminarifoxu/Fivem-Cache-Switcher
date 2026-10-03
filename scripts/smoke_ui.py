@@ -39,6 +39,28 @@ def automated_loop(self):
             assert "Pilih FiveM.exe" not in labels(self.sidebar)
             assert "Cek update" not in labels(self.sidebar)
             assert "List server" in labels(self.pages["servers"])
+            original_profiles = self.store.profiles.copy()
+            self.store.profiles = {f"test{i}": f"CITY PROFILE {i}" for i in range(7)}
+            self.render()
+            cards = self.list.winfo_children()
+            assert len(cards) == 7
+            assert [
+                (int(card.grid_info()["row"]), int(card.grid_info()["column"]))
+                for card in cards
+            ] == [(i // 3, i % 3) for i in range(7)]
+            original_switch = self.switch
+            switched = []
+            self.switch = switched.append
+            first_actions = cards[0].grid_slaves(row=2, column=0)[0]
+            first_actions.grid_slaves(row=0, column=0)[0].invoke()
+            assert switched == ["test0"], "profile card activates the wrong city"
+            self.switch = original_switch
+            self.change_theme("Gelap")
+            assert len(self.list.winfo_children()) == 7
+            self.change_theme("Terang")
+            self.store.profiles = original_profiles
+            self.render()
+
             self.animations_enabled = True
             self.show_page("servers")
             self.show_page("cache")

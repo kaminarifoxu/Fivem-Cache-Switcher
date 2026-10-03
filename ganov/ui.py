@@ -897,6 +897,7 @@ def main():
                 scrollbar_button_hover_color=RED,
             )
             self.list.grid(row=3, column=0, sticky="nsew")
+            self.list.grid_columnconfigure((0, 1, 2), weight=1, uniform="profiles")
             self.path_label = ctk.CTkLabel(
                 page,
                 text="",
@@ -1603,7 +1604,7 @@ def main():
                     border_width=1,
                     corner_radius=14,
                 )
-                empty.pack(fill="x", pady=6)
+                empty.grid(row=0, column=0, columnspan=3, sticky="ew", pady=6)
                 self.art(empty, "empty", CARD).pack(pady=(18, 3))
                 ctk.CTkLabel(
                     empty,
@@ -1627,9 +1628,14 @@ def main():
                     border_width=1,
                     corner_radius=12,
                 )
-                card.pack(fill="x", pady=(0, 9))
+                card.grid(
+                    row=index // 3, column=index % 3, sticky="nsew", padx=5, pady=5
+                )
+                card.grid_columnconfigure(0, weight=1)
+                header = ctk.CTkFrame(card, fg_color="transparent")
+                header.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 5))
                 badge = ctk.CTkFrame(
-                    card,
+                    header,
                     fg_color=(
                         app_theme.color("#ead0b0")
                         if current
@@ -1639,7 +1645,7 @@ def main():
                     height=46,
                     corner_radius=12,
                 )
-                badge.pack(side="left", padx=(16, 10), pady=15)
+                badge.pack(side="left")
                 badge.pack_propagate(False)
                 ctk.CTkLabel(
                     badge,
@@ -1648,13 +1654,16 @@ def main():
                     text_color=GOLD,
                 ).pack(expand=True)
                 info = ctk.CTkFrame(card, fg_color="transparent")
-                info.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=13)
-                short = name if len(name) <= 30 else name[:27] + "..."
+                info.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+                short = name if len(name) <= 48 else name[:45] + "…"
                 ctk.CTkLabel(
                     info,
                     text=short,
                     anchor="w",
-                    font=(FONT, 15, "bold"),
+                    font=(FONT, 13, "bold"),
+                    height=38,
+                    wraplength=210,
+                    justify="left",
                     text_color=WHITE,
                 ).pack(fill="x")
                 ctk.CTkLabel(
@@ -1666,32 +1675,33 @@ def main():
                     font=(FONT, 10),
                 ).pack(fill="x", pady=(2, 0))
                 actions = ctk.CTkFrame(card, fg_color="transparent")
-                actions.pack(side="right", padx=13)
+                actions.grid(row=2, column=0, sticky="ew", padx=10, pady=(2, 12))
+                actions.grid_columnconfigure((0, 1, 2), weight=1, uniform="actions")
                 switch = self.btn(
                     actions,
                     tr("Sedang aktif") if current else tr("Aktifkan"),
                     lambda p=pid: self.switch(p),
                     primary=not current,
-                    width=106,
-                    height=35,
+                    width=78,
+                    height=30,
                 )
-                switch.pack(side="left", padx=(0, 8))
+                switch.grid(row=0, column=0, sticky="ew", padx=(0, 4))
                 if current:
                     switch.configure(state="disabled", text_color_disabled=GOLD)
                 self.btn(
                     actions,
                     tr("Nama"),
                     lambda p=pid: self.rename(p),
-                    width=56,
-                    height=35,
-                ).pack(side="left", padx=(0, 5))
+                    width=54,
+                    height=30,
+                ).grid(row=0, column=1, sticky="ew", padx=(0, 4))
                 self.btn(
                     actions,
                     tr("Hapus"),
                     lambda p=pid: self.delete(p),
-                    width=56,
-                    height=35,
-                ).pack(side="left")
+                    width=54,
+                    height=30,
+                ).grid(row=0, column=2, sticky="ew")
             if self.busy:
                 for b in self.buttons:
                     if b.winfo_exists():
