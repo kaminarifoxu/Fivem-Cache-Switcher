@@ -1156,15 +1156,21 @@ def main():
             if release or error:
                 ctk.CTkButton(row, text=tr('Nanti') if release else tr('Tutup'), command=close, width=120, height=42, fg_color='#292026', hover_color='#443139', text_color=WHITE, border_color=LINE, border_width=1, corner_radius=6, font=(FONT, 12)).pack(side='right', padx=(0, 10))
             dialog.bind('<Return>', lambda event: action())
-            dialog.deiconify()
-            dialog.lift()
-            dialog.attributes('-topmost', True)
-            def release_topmost():
-                if dialog.winfo_exists():
-                    dialog.attributes('-topmost', False)
-            dialog.after(500, release_topmost)
-            dialog.grab_set()
-            primary.focus_set()
+            def present():
+                if not dialog.winfo_exists():
+                    return
+                dialog.deiconify()
+                dialog.lift()
+                dialog.attributes('-topmost', True)
+                dialog.grab_set()
+                primary.focus_set()
+                def release_topmost():
+                    if dialog.winfo_exists():
+                        dialog.attributes('-topmost', False)
+                dialog.after(500, release_topmost)
+            # CustomTkinter updates the Windows titlebar asynchronously; present
+            # after that initialization so its withdraw/restore cannot hide us.
+            dialog.after(250, present)
 
         def finish_update_error(self, error):
             self.update_installing = False

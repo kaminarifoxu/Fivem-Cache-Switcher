@@ -38,7 +38,9 @@ def automated_loop(self):
             self.update_idletasks()
             assert self.update_banner.winfo_viewable(), "global update banner hidden"
             self.show_update_notice(release=self.latest_release)
-            self.update()
+            timeout = self.after(3000, lambda: self.update_dialog.destroy() if self.update_dialog and not self.update_dialog.winfo_viewable() else None)
+            self.update_dialog.wait_visibility()
+            self.after_cancel(timeout)
             assert self.update_dialog.winfo_viewable(), "update dialog not mapped yet"
             assert not self.update_dialog.overrideredirect()
             self.update_dialog.grab_release()
