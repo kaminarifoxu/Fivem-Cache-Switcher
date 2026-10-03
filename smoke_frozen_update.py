@@ -46,6 +46,16 @@ def main():
                 assert data['old_runtime'] != data['new_runtime'], data
                 assert not Path(data['old_runtime']).exists(), data
                 assert not Path(str(executable)+'.update-backup').exists()
+                # The replacement bootloader can still be exiting after the helper
+                # removes staging. Wait for its runtime and executable lock too.
+                if Path(data['new_runtime']).exists():
+                    time.sleep(.5)
+                    continue
+                try:
+                    executable.unlink()
+                except PermissionError:
+                    time.sleep(.5)
+                    continue
                 print('PASS: frozen EXE restart uses fresh runtime; old runtime and backup cleaned.')
                 return
             time.sleep(.5)
