@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.3.1"
+VERSION = "2.3.2"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -748,14 +748,14 @@ def main():
                     if error:
                         self.update_status.configure(text="Tidak dapat mengecek update.")
                         if manual:
-                            messagebox.showwarning("Cek update", "Tidak dapat menghubungi GitHub. Coba lagi nanti.\n\n" + error, parent=self)
+                            self.show_update_notice(error=error)
                     elif release:
                         self.update_status.configure(text="Update tersedia: v" + release["version"])
                         self.show_update(release)
                     else:
                         self.update_status.configure(text="Belum ada versi yang lebih baru.")
                         if manual:
-                            messagebox.showinfo("Cek update", "Belum ada rilis stabil yang lebih baru dari v" + VERSION + ".", parent=self)
+                            self.show_update_notice()
                 elif kind == "sizes":
                     generation, sizes = value
                     if generation == self.size_generation and not self.busy:
@@ -798,36 +798,115 @@ def main():
             threading.Thread(target=worker, daemon=True).start()
 
         def show_update(self, release):
+            self.show_update_notice(release=release)
+
+        def show_update_notice(self, release=None, error=None):
             if self.closed:
                 return
             if self.busy or self.grab_current() is not None:
-                self.after(500, lambda: self.show_update(release))
+                self.after(500, lambda: self.show_update_notice(release, error))
                 return
             if self.update_dialog is not None and self.update_dialog.winfo_exists():
                 self.update_dialog.lift()
                 return
             dialog = self.update_dialog = ctk.CTkToplevel(self)
-            dialog.title("Update tersedia — " + APP_NAME)
-            dialog.geometry("520x330")
-            dialog.resizable(False, False)
+            dialog.withdraw()
+            dialog.title("Pembaruan | " + APP_NAME)
             dialog.configure(fg_color=BG)
+            dialog.resizable(False, False)
             dialog.transient(self)
-            card = ctk.CTkFrame(dialog, fg_color=CARD, border_color=LINE, border_width=1, corner_radius=14)
-            card.pack(fill="both", expand=True, padx=12, pady=12)
-            ctk.CTkLabel(card, text=APP_NAME, text_color=GOLD, font=(FONT, 13, "bold")).pack(pady=(24, 8))
-            ctk.CTkLabel(card, text="Update tersedia: v" + release["version"], text_color=WHITE, font=(FONT, 22, "bold")).pack(pady=4)
-            ctk.CTkLabel(card, text="Versi terpasang: v" + VERSION + "\nUnduh EXE terbaru melalui GitHub Releases.\nTutup aplikasi, lalu ganti EXE lama.\nPengaturan tersimpan otomatis dan tetap tersedia setelah update.",
-                         text_color=MUTED, font=(FONT, 12), wraplength=450).pack(padx=20, pady=16)
-            row = ctk.CTkFrame(card, fg_color="transparent")
-            row.pack(pady=(0, 18))
+            # Draw the complete header in the app theme, including its close button.
+            dialog.overrideredirect(True)
+            scale = ctk.ScalingTracker.get_window_scaling(dialog)
+            x = self.winfo_rootx() + (self.winfo_width() - round(540 * scale)) // 2
+            y = self.winfo_rooty() + (self.winfo_height() - round(460 * scale)) // 2
+            dialog.geometry(f"540x460+{max(0, x)}+{max(0, y)}")
+            def close(event=None):
+                if dialog.winfo_exists():
+                    if dialog.grab_current() == dialog:
+                        dialog.grab_release()
+                    dialog.destroy()
+                self.update_dialog = None
+            dialog.protocol("WM_DELETE_WINDOW", close)
+            dialog.bind("<Escape>", close)
+            shell = ctk.CTkFrame(dialog, fg_color=CARD, border_color="#79523c", border_width=1, corner_radius=0)
+            shell.pack(fill="both", expand=True)
+            header = ctk.CTkFrame(shell, fg_color="#21181c", height=48, corner_radius=0)
+            header.pack(fill="x", padx=1, pady=(1, 0))
+            header.pack_propagate(False)
+            brand = ctk.CTkLabel(header, text="GANOMABI  /  PEMBARUAN", text_color=GOLD, font=(FONT, 11, "bold"))
+            brand.pack(side="left", padx=22)
+            ctk.CTkButton(header, text="×", width=36, height=30, corner_radius=6,
+                          fg_color="transparent", hover_color=RED, text_color=MUTED,
+                          font=(FONT, 22), command=close).pack(side="right", padx=10)
+            drag = {}
+            def start_drag(event):
+                drag.update(x=event.x_root-dialog.winfo_x(), y=event.y_root-dialog.winfo_y())
+            def move_drag(event):
+                if drag:
+                    dialog.geometry(f"+{max(0, event.x_root-drag['x'])}+{max(0, event.y_root-drag['y'])}")
+            for widget in (header, brand):
+                widget.bind("<ButtonPress-1>", start_drag)
+                widget.bind("<B1-Motion>", move_drag)
+            ctk.CTkFrame(shell, height=2, fg_color=RED, corner_radius=0).pack(fill="x", padx=1)
+            head = ctk.CTkFrame(shell, fg_color="transparent")
+            head.pack(fill="x", padx=26, pady=(18, 10))
+            self.art(head, "status", CARD).pack(side="left", padx=(0, 16))
+            titles = ctk.CTkFrame(head, fg_color="transparent")
+            titles.pack(side="left", fill="x", expand=True)
+            title = "Update tersedia" if release else "Cek update gagal" if error else "Versi kamu sudah terbaru"
+            subtitle = "Versi baru siap diunduh." if release else "Coba lagi saat koneksi tersedia." if error else "Belum ada rilis stabil yang lebih baru."
+            ctk.CTkLabel(titles, text=title, anchor="w", text_color=WHITE,
+                         font=(FONT, 20, "bold")).pack(fill="x")
+            ctk.CTkLabel(titles, text=subtitle, anchor="w", text_color=MUTED,
+                         font=(FONT, 11)).pack(fill="x", pady=(4, 0))
+            versions = ctk.CTkFrame(shell, fg_color="#100d10", border_color=LINE, border_width=1, corner_radius=10)
+            versions.pack(fill="x", padx=26, pady=(0, 14))
+            def version_cell(parent, label, value, color):
+                cell = ctk.CTkFrame(parent, fg_color="transparent")
+                cell.pack(side="left", fill="x", expand=True, padx=18, pady=12)
+                ctk.CTkLabel(cell, text=label, text_color=MUTED, font=(FONT, 10), anchor="w").pack(fill="x")
+                ctk.CTkLabel(cell, text=value, text_color=color, font=(FONT, 20, "bold"), anchor="w").pack(fill="x")
+            version_cell(versions, "VERSI TERPASANG", "v" + VERSION, WHITE)
+            version_cell(versions, "VERSI BARU" if release else "STATUS", "v" + release["version"] if release else "Offline" if error else "Terkini", GOLD)
+            if release:
+                description = "Unduh EXE dari GitHub, tutup aplikasi, lalu ganti EXE lama. Pengaturan dan profil kota tetap tersimpan otomatis."
+            elif error:
+                description = "GitHub belum dapat dihubungi. Periksa koneksi internet, lalu tekan Coba lagi. Aplikasi tetap dapat digunakan."
+            else:
+                description = "Kamu bisa melanjutkan menggunakan aplikasi. Kami akan memberi notifikasi ketika rilis baru tersedia di GitHub."
+            ctk.CTkLabel(shell, text=description, text_color=MUTED, font=(FONT, 12),
+                         justify="left", anchor="w", wraplength=480).pack(fill="x", padx=28, pady=(0, 10))
+            ctk.CTkLabel(shell, text="© 2026 GANOMABI / amiinarii", text_color="#806b73",
+                         font=(FONT, 10)).pack(side="bottom", pady=(0, 14))
+            row = ctk.CTkFrame(shell, fg_color="transparent")
+            row.pack(side="bottom", fill="x", padx=26, pady=(6, 12))
             def download():
                 try:
                     open_release_page(release["url"])
-                    dialog.destroy()
-                except Exception as e:
-                    messagebox.showerror("Buka rilis", str(e), parent=dialog)
-            self.btn(row, "Unduh update", download, primary=True, width=170).pack(side="left", padx=6)
-            self.btn(row, "Nanti", dialog.destroy, width=120).pack(side="left", padx=6)
+                    close()
+                except Exception as exc:
+                    close()
+                    self.show_update_notice(error=str(exc))
+            def retry():
+                close()
+                self.check_updates(manual=True)
+            action = download if release else retry if error else close
+            label = "Unduh update" if release else "Coba lagi" if error else "Mengerti"
+            primary = ctk.CTkButton(row, text=label, command=action, width=180, height=42,
+                                    fg_color=RED, hover_color="#d13747", text_color=WHITE,
+                                    corner_radius=9, font=(FONT, 12, "bold"))
+            primary.pack(side="right")
+            if release or error:
+                ctk.CTkButton(row, text="Nanti" if release else "Tutup", command=close, width=120, height=42,
+                              fg_color="#292026", hover_color="#443139", text_color=WHITE,
+                              border_color=LINE, border_width=1, corner_radius=9,
+                              font=(FONT, 12, "bold")).pack(side="right", padx=(0, 10))
+            dialog.bind("<Return>", lambda event: action())
+            dialog.deiconify()
+            dialog.lift()
+            dialog.grab_set()
+            primary.focus_set()
 
         def run(self, label, work):
             if self.busy:
