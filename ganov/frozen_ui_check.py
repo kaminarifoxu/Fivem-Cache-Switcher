@@ -25,6 +25,7 @@ def install(app, output):
                     "RGBA", (64, 64), "red"
                 )
             }
+            app.render_servers()
             app.show_page("servers")
             assert len(app.server_logo_images) == 1, "Packaged server logo not rendered"
             app.update_idletasks()
