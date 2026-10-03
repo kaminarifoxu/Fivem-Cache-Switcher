@@ -91,7 +91,7 @@ try {
     try {
         Start-Process -FilePath $target -WorkingDirectory (Split-Path -Parent $target) -ErrorAction Stop
     } catch {
-        [System.IO.File]::Replace($backup, $target, $null, $true)
+        [System.IO.File]::Replace($backup, $target, $incoming, $true)
         throw
     }
     Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue

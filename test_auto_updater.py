@@ -60,7 +60,7 @@ class DownloadTests(unittest.TestCase):
                 script = script.replace("[System.Windows.Forms.MessageBox]::Show('Update gagal: ' + $_.Exception.Message + \"`nJalankan kembali aplikasi lama.\", 'GanoV-Cache-Switch') | Out-Null", 'Write-Output failed')
                 result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script], capture_output=True, text=True, timeout=40)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(target.read_bytes(), b'old exe' if fail_launch else b'new exe')
+                self.assertEqual(target.read_bytes(), b'old exe' if fail_launch else b'new exe', result.stdout + result.stderr)
                 self.assertFalse(stage.exists())
                 self.assertFalse(Path(str(target)+'.update-new').exists())
                 self.assertFalse(Path(str(target)+'.update-backup').exists())
