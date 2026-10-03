@@ -18,7 +18,15 @@ def install(app, output):
         try:
             app.latest_release = {"version": "99.0.0", "summary": "• Packaged UI test"}
             app.set_update_status("Update available: v99.0.0")
+            from PIL import Image
+
+            app.server_icons = {
+                app.catalog["servers"][0]["join_code"]: Image.new(
+                    "RGBA", (64, 64), "red"
+                )
+            }
             app.show_page("servers")
+            assert len(app.server_logo_images) == 1, "Packaged server logo not rendered"
             app.update_idletasks()
             app.global_update_button._canvas.event_generate("<Button-1>", x=30, y=15)
             app.after(500, verify)

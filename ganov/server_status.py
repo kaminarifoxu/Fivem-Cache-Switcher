@@ -31,6 +31,7 @@ def parse_status(payload):
     description = re.sub(r"\^[0-9]", "", description)
     description = "".join(c for c in description if c.isprintable() or c == "\n")[:500]
     return {
+        "icon_version": data.get("iconVersion"),
         "clients": clients,
         "maximum": maximum,
         "description": description,

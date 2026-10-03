@@ -30,6 +30,7 @@ def main():
     from .i18n import tr
     from .server_catalog import load_catalog, sync_catalog, connect_uri
     from .server_status import fetch_statuses, page_url
+    from .server_icons import fetch_icons
 
     ui_settings_path = os.path.join(
         os.path.dirname(user_config_path()), "ui_settings.json"
@@ -92,6 +93,8 @@ def main():
                     self.animations_enabled = bool(enabled.value)
             self.catalog_syncing = False
             self.server_statuses = {}
+            self.server_icons = {}
+            self.server_logo_images = []
             self.status_syncing = False
             self.server_page = 0
             self.catalog_cache = os.path.join(
@@ -481,6 +484,7 @@ def main():
             self.render_servers()
 
         def render_servers(self):
+            self.server_logo_images = []
             for widget in self.server_list.winfo_children():
                 widget.destroy()
             self.buttons = [button for button in self.buttons if button.winfo_exists()]
@@ -515,7 +519,31 @@ def main():
                     text_color=WHITE,
                     font=(FONT, 12, "bold"),
                     anchor="w",
-                ).grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 0))
+                ).grid(
+                    row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=(10, 0)
+                )
+                logo = self.server_icons.get(server["join_code"])
+                logo_image = (
+                    ctk.CTkImage(light_image=logo, dark_image=logo, size=(56, 56))
+                    if logo is not None
+                    else None
+                )
+                if logo_image is not None:
+                    self.server_logo_images.append(logo_image)
+                initials = "".join(
+                    word[0] for word in server["name"].split()[:2]
+                ).upper()
+                ctk.CTkLabel(
+                    card,
+                    text="" if logo_image else initials,
+                    image=logo_image,
+                    width=64,
+                    height=64,
+                    corner_radius=10,
+                    fg_color=BG,
+                    text_color=GOLD,
+                    font=(FONT, 20, "bold"),
+                ).grid(row=1, column=1, sticky="ne", padx=(0, 10), pady=3)
                 status = self.server_statuses.get(server["join_code"], {})
                 description = status.get("description") or server.get(
                     "description", {}
@@ -529,7 +557,7 @@ def main():
                     height=26,
                     text_color=MUTED,
                     font=(FONT, 10),
-                    wraplength=195,
+                    wraplength=155,
                     justify="left",
                     anchor="w",
                 ).grid(row=1, column=0, sticky="nw", padx=12, pady=3)
@@ -545,9 +573,11 @@ def main():
                     text_color=GOLD,
                     font=(FONT, 11, "bold"),
                     anchor="w",
-                ).grid(row=2, column=0, sticky="ew", padx=12, pady=3)
+                ).grid(row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=3)
                 actions = ctk.CTkFrame(card, fg_color="transparent")
-                actions.grid(row=3, column=0, sticky="ew", padx=10, pady=(3, 10))
+                actions.grid(
+                    row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=(3, 10)
+                )
                 actions.grid_columnconfigure((0, 1), weight=1)
                 self.btn(
                     actions,
@@ -585,7 +615,12 @@ def main():
             codes = [server["join_code"] for server in self.catalog["servers"]]
 
             def worker():
-                self.results.append(("server_status", fetch_statuses(codes)))
+                statuses = fetch_statuses(codes)
+                self.results.append(("server_status", statuses))
+                cache = os.path.join(
+                    os.path.dirname(user_config_path()), "server_icons"
+                )
+                self.results.append(("server_icons", fetch_icons(statuses, cache)))
 
             threading.Thread(target=worker, daemon=True).start()
 
@@ -1072,6 +1107,9 @@ def main():
                 if kind == "server_status":
                     self.status_syncing = False
                     self.server_statuses = value
+                    self.render_servers()
+                elif kind == "server_icons":
+                    self.server_icons.update(value)
                     self.render_servers()
                 elif kind == "catalog":
                     self.catalog_syncing = False

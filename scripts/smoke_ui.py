@@ -108,6 +108,18 @@ def automated_loop(self):
             ), "global download progress hidden"
             assert self.global_update_progress.get() == 0.5
             assert len(self.catalog["servers"]) >= 5
+            from PIL import Image
+
+            self.server_icons = {
+                self.catalog["servers"][0]["join_code"]: Image.new(
+                    "RGBA", (64, 64), "red"
+                )
+            }
+            self.render_servers()
+            assert len(self.server_logo_images) == 1, "server logo not rendered"
+            self.change_theme("Gelap")
+            assert len(self.server_logo_images) == 1
+            self.change_theme("Terang")
             self.server_statuses = {
                 self.catalog["servers"][0]["join_code"]: {
                     "available": True,
