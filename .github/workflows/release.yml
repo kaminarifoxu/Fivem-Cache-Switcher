@@ -32,6 +32,7 @@ jobs:
       - run: python -m unittest discover -v
       - run: python smoke_ui.py
       - run: python build_windows.py
+      - run: python smoke_packaged_ui.py
       - run: python smoke_frozen_update.py
       - uses: actions/upload-artifact@v4
         with:

@@ -34,3 +34,5 @@ EN.update({'Sebelumnya': 'Previous', 'Berikutnya': 'Next', 'Halaman': 'Page'})
 EN.update({'Yang baru': 'What’s new', 'Ringkasan belum tersedia. Lihat catatan rilis di GitHub.': 'No summary is available. See the release notes on GitHub.'})
 
 EN.update({'TEMA APLIKASI': 'APP THEME', 'Terang': 'Light', 'Gelap': 'Dark'})
+
+EN.update({'Membuka panel update...': 'Opening update panel...'})

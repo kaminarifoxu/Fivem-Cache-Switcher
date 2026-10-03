@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.4"
+VERSION = "2.7.5"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -681,7 +681,7 @@ def main():
             self.update_banner.grid_columnconfigure(0, weight=1)
             self.global_update_label = ctk.CTkLabel(self.update_banner, text='', text_color=GOLD, font=(FONT, 11), anchor='w')
             self.global_update_label.grid(row=0, column=0, sticky='ew', padx=12, pady=8)
-            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=lambda: self.show_update(self.latest_release) if self.latest_release else None, width=150, height=30, fg_color=RED, hover_color=app_theme.color('#cf3444'), text_color=app_theme.color('#ffffff'), font=(FONT, 11))
+            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=self.open_update_panel, width=150, height=30, fg_color=RED, hover_color=app_theme.color('#cf3444'), text_color=app_theme.color('#ffffff'), font=(FONT, 11))
             self.global_update_button.grid(row=0, column=1, padx=10, pady=8)
             self.global_update_progress = ctk.CTkProgressBar(self.update_banner, height=4, progress_color=RED, fg_color=LINE)
             self.global_update_progress.grid(row=1, column=0, columnspan=2, sticky='ew', padx=12, pady=(0, 10))
@@ -1121,6 +1121,17 @@ def main():
             if not self.latest_release or self.update_installing:
                 self.global_update_button.grid_remove()
 
+        def open_update_panel(self):
+            self.feedback.configure(text=tr('Membuka panel update...'))
+            try:
+                if self.latest_release:
+                    self.show_update(self.latest_release)
+                else:
+                    self.check_updates(manual=True)
+            except Exception as exc:
+                self.feedback.configure(text=tr('Update gagal. EXE lama tetap tersedia.'))
+                messagebox.showerror(tr('Cek update gagal'), str(exc), parent=self)
+
         def manual_update_check(self):
             if self.update_dialog is not None and self.update_dialog.winfo_exists():
                 self.show_update_notice(release=self.latest_release)
@@ -1523,6 +1534,9 @@ def main():
             messagebox.showinfo(APP_NAME, tr('Aplikasi sudah terbuka.'))
             return
     app = App()
+    if len(sys.argv) == 3 and sys.argv[1] == '--smoke-ui':
+        from frozen_ui_check import install
+        install(app, sys.argv[2])
     app.mainloop()
     if mutex:
         kernel.CloseHandle.argtypes = [ctypes.c_void_p]
