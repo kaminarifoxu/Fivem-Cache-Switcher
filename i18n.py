@@ -26,3 +26,5 @@ def set_language(language, path):
     LANGUAGE = language
 
 EN.update({'BAHASA APLIKASI': 'APP LANGUAGE', 'pemain': 'players', 'Jumlah pemain belum tersedia': 'Player count unavailable'})
+
+EN.update({'List server': 'Server list', 'Pilih server dan hubungkan melalui FiveM.': 'Choose a server and connect through FiveM.', 'Belum tersedia': 'Unavailable'})

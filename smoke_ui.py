@@ -19,6 +19,18 @@ def automated_loop(self):
         try:
             assert self.nav['servers'].cget('text')=='Daftar server'
             assert self.language_selector.master.master is self.pages['tools']
+            assert self.exe_label.master.master is self.pages['tools']
+            assert self.update_status.master.master is self.pages['tools']
+            def labels(widget):
+                result = []
+                for child in widget.winfo_children():
+                    try: result.append(child.cget('text'))
+                    except Exception: pass
+                    result.extend(labels(child))
+                return result
+            assert 'Pilih FiveM.exe' not in labels(self.sidebar)
+            assert 'Cek update' not in labels(self.sidebar)
+            assert 'List server' in labels(self.pages['servers'])
             self.show_page('servers')
             self.change_language('English')
             assert self.nav['servers'].cget('text')=='Server list'
