@@ -32,9 +32,27 @@ def automated_loop(self):
             assert 'Cek update' not in labels(self.sidebar)
             assert 'List server' in labels(self.pages['servers'])
             self.show_page('servers')
+            self.latest_release = {'version':'99.0.0'}
+            self.set_update_status('Update tersedia: v99.0.0')
+            self.update_idletasks()
+            assert self.update_banner.winfo_viewable()
+            self.show_update_notice(release=self.latest_release)
+            self.update()
+            assert self.update_dialog.winfo_viewable()
+            assert not self.update_dialog.overrideredirect()
+            self.update_dialog.grab_release()
+            self.update_dialog.destroy()
+            self.update_dialog=None
             self.change_language('English')
             assert self.nav['servers'].cget('text')=='Server list'
             assert self.page=='servers'
+            self.update_idletasks()
+            assert self.update_banner.winfo_viewable()
+            self.results.append(('update_progress', .5))
+            self.poll()
+            self.update_idletasks()
+            assert self.global_update_progress.winfo_viewable()
+            assert self.global_update_progress.get()==.5
             assert len(self.catalog['servers'])>=5
             self.server_statuses = {self.catalog['servers'][0]['join_code']: {'available':True,'clients':123,'maximum':2048,'description':'Official description','checked':'12:00:00'}}
             self.render_servers()

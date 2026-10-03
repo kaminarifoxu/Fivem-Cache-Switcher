@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.6.0"
+VERSION = "2.6.1"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -528,6 +528,7 @@ def main():
             self.update_checking = False
             self.update_installing = False
             self.update_dialog = None
+            self.latest_release = None
             self.page = 'cache'
             self.ui_started = False
             self.catalog_syncing = False
@@ -643,8 +644,22 @@ def main():
             self.busy_bar.grid(row=0, column=1, padx=(10, 0))
             self.busy_bar.set(0)
             self.busy_bar.grid_remove()
+            self.update_banner = ctk.CTkFrame(footer, fg_color=CARD, corner_radius=6)
+            self.update_banner.grid(row=1, column=0, columnspan=2, sticky='ew', pady=(8, 0))
+            self.update_banner.grid_columnconfigure(0, weight=1)
+            self.global_update_label = ctk.CTkLabel(self.update_banner, text='', text_color=GOLD, font=(FONT, 11), anchor='w')
+            self.global_update_label.grid(row=0, column=0, sticky='ew', padx=12, pady=8)
+            self.global_update_button = ctk.CTkButton(self.update_banner, text=tr('Update sekarang'), command=lambda: self.show_update(self.latest_release) if self.latest_release else None, width=150, height=30, fg_color=RED, hover_color='#cf3444', font=(FONT, 11))
+            self.global_update_button.grid(row=0, column=1, padx=10, pady=8)
+            self.global_update_progress = ctk.CTkProgressBar(self.update_banner, height=4, progress_color=RED, fg_color=LINE)
+            self.global_update_progress.grid(row=1, column=0, columnspan=2, sticky='ew', padx=12, pady=(0, 10))
+            self.global_update_progress.set(0)
+            self.global_update_progress.grid_remove()
+            self.update_banner.grid_remove()
             self.show_page('cache')
             self.refresh()
+            if self.latest_release:
+                self.set_update_status(tr('Update tersedia: v') + self.latest_release['version'])
             if self.store.exe and os.path.isfile(self.store.exe):
                 self.feedback.configure(text=tr('Siap. Pilih kota yang ingin kamu aktifkan.'))
             if not self.ui_started:
@@ -933,7 +948,10 @@ def main():
                     self.catalog_syncing = False
                     self.catalog_status.configure(text=tr('Sync gagal; daftar terakhir tetap tersedia.'))
                 elif kind == 'update_progress':
-                    self.update_status.configure(text=f"{tr('Mengunduh update: ')}{value:.0%}")
+                    self.set_update_status(f"{tr('Mengunduh update: ')}{value:.0%}")
+                    self.global_update_progress.grid()
+                    self.global_update_progress.set(value)
+                    self.global_update_button.grid_remove()
                     if hasattr(self, 'download_progress') and self.download_progress.winfo_exists():
                         self.download_progress.set(value)
                         self.download_label.configure(text=f"{tr('Mengunduh update... ')}{value:.0%}")
@@ -955,14 +973,16 @@ def main():
                     manual, release, error = value
                     self.update_checking = False
                     if error:
-                        self.update_status.configure(text=tr('Tidak dapat mengecek update.'))
+                        self.set_update_status(tr('Tidak dapat mengecek update.'))
                         if manual:
                             self.show_update_notice(error=error)
                     elif release:
-                        self.update_status.configure(text=tr('Update tersedia: v') + release['version'])
+                        self.latest_release = release
+                        self.global_update_button.grid()
+                        self.set_update_status(tr('Update tersedia: v') + release['version'])
                         self.show_update(release)
                     else:
-                        self.update_status.configure(text=tr('Belum ada versi yang lebih baru.'))
+                        self.set_update_status(tr('Belum ada versi yang lebih baru.'))
                         if manual:
                             self.show_update_notice()
                 elif kind == 'sizes':
@@ -993,11 +1013,18 @@ def main():
             if not self.closed:
                 self.after(100, self.poll)
 
+        def set_update_status(self, text):
+            self.update_status.configure(text=text)
+            self.global_update_label.configure(text=text)
+            self.update_banner.grid()
+            if not self.latest_release or self.update_installing:
+                self.global_update_button.grid_remove()
+
         def check_updates(self, manual=False):
             if self.closed or self.update_checking or self.update_installing:
                 return
             self.update_checking = True
-            self.update_status.configure(text=tr('Mengecek update...'))
+            self.set_update_status(tr('Mengecek update...'))
 
             def worker():
                 try:
@@ -1025,7 +1052,7 @@ def main():
             dialog.configure(fg_color=BG)
             dialog.resizable(False, False)
             dialog.transient(self)
-            dialog.overrideredirect(True)
+            # Keep a normal owned window so Windows can reliably bring it forward.
             scale = ctk.ScalingTracker.get_window_scaling(dialog)
             x = self.winfo_rootx() + (self.winfo_width() - round(540 * scale)) // 2
             y = self.winfo_rooty() + (self.winfo_height() - round(540 * scale)) // 2
@@ -1104,6 +1131,9 @@ def main():
                     self.show_update_notice(error=tr('Gunakan EXE Windows untuk memasang update otomatis.'))
                     return
                 self.update_installing = True
+                self.set_update_status(tr('Menyiapkan unduhan...'))
+                self.global_update_progress.grid()
+                self.global_update_button.grid_remove()
                 primary.configure(state='disabled', text=tr('Mengunduh...'))
                 self.download_label.configure(text=tr('Menyiapkan unduhan...'))
 
@@ -1128,12 +1158,20 @@ def main():
             dialog.bind('<Return>', lambda event: action())
             dialog.deiconify()
             dialog.lift()
+            dialog.attributes('-topmost', True)
+            def release_topmost():
+                if dialog.winfo_exists():
+                    dialog.attributes('-topmost', False)
+            dialog.after(500, release_topmost)
             dialog.grab_set()
             primary.focus_set()
 
         def finish_update_error(self, error):
             self.update_installing = False
-            self.update_status.configure(text=tr('Update gagal. EXE lama tetap tersedia.'))
+            self.global_update_progress.grid_remove()
+            if self.latest_release:
+                self.global_update_button.grid()
+            self.set_update_status(tr('Update gagal. EXE lama tetap tersedia.'))
             if self.update_dialog is not None and self.update_dialog.winfo_exists():
                 self.update_dialog.grab_release()
                 self.update_dialog.destroy()
