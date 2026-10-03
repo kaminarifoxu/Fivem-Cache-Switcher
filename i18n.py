@@ -24,3 +24,5 @@ def set_language(language, path):
     temporary.write_text(json.dumps({'language':language}), encoding='utf-8')
     temporary.replace(target)
     LANGUAGE = language
+
+EN.update({'BAHASA APLIKASI': 'APP LANGUAGE', 'pemain': 'players', 'Jumlah pemain belum tersedia': 'Player count unavailable'})

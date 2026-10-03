@@ -9,7 +9,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.5.0"
+VERSION = "2.5.1"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -501,6 +501,7 @@ def main():
     import i18n
     from i18n import tr
     from server_catalog import load_catalog, sync_catalog, connect_uri
+    from server_status import fetch_statuses, page_url
     ui_settings_path = os.path.join(os.path.dirname(user_config_path()), 'ui_settings.json')
     i18n.load(ui_settings_path)
     ctk.set_appearance_mode('dark')
@@ -530,6 +531,8 @@ def main():
             self.page = 'cache'
             self.ui_started = False
             self.catalog_syncing = False
+            self.server_statuses = {}
+            self.status_syncing = False
             self.catalog_cache = os.path.join(os.path.dirname(user_config_path()), 'servers_cache.json')
             self.catalog = load_catalog(self.catalog_cache, os.path.join(getattr(sys, '_MEIPASS', base), 'servers.json'))
             self.protocol('WM_DELETE_WINDOW', self.close)
@@ -600,10 +603,6 @@ def main():
             self.art(side, 'sidebar', '#161014').pack(pady=(15, 0))
             ctk.CTkLabel(side, text=APP_NAME, text_color=GOLD, font=(FONT, 16, 'bold')).pack(pady=(0, 3))
             ctk.CTkLabel(side, text='FiveM Launcher & Profiles', text_color=MUTED, font=(FONT, 11)).pack(pady=(0, 22))
-            language = ctk.CTkSegmentedButton(side, values=['Indonesia', 'English'], command=self.change_language, selected_color=RED, selected_hover_color='#d13747', unselected_color='#292026', height=28)
-            language.set('English' if i18n.LANGUAGE == 'en' else 'Indonesia')
-            language.pack(fill='x', padx=22, pady=(0, 10))
-            self.language_selector = language
             self.nav = {}
             for key, text in [('cache', tr('Profil kota')), ('servers', tr('Daftar server')), ('tools', tr('Peralatan'))]:
                 self.nav[key] = self.btn(side, text, lambda p=key: self.show_page(p), width=206)
@@ -658,6 +657,7 @@ def main():
                 self.after(100, self.poll)
                 self.after(250, self.load_adapters)
                 self.after(500, self.periodic_servers)
+                self.after(1000, self.periodic_status)
 
         def change_language(self, choice):
             if self.busy or self.update_installing or self.grab_current() is not None:
@@ -699,14 +699,36 @@ def main():
                 info = ctk.CTkFrame(card, fg_color='transparent')
                 info.pack(side='left', fill='x', expand=True, padx=18, pady=16)
                 ctk.CTkLabel(info, text=server['name'], text_color=GOLD, font=(FONT, 16, 'bold'), anchor='w').pack(fill='x')
-                description = server.get('description', {}).get(i18n.LANGUAGE, '')
+                status = self.server_statuses.get(server['join_code'], {})
+                description = status.get('description') or server.get('description', {}).get(i18n.LANGUAGE, '')
                 ctk.CTkLabel(info, text=description, text_color=MUTED, font=(FONT, 11), anchor='w', wraplength=450, justify='left').pack(fill='x', pady=(4, 0))
+                if status.get('available'):
+                    players = f"{status['clients']} / {status['maximum']} " + tr('pemain') + ' • ' + status['checked']
+                else:
+                    players = tr('Jumlah pemain belum tersedia')
+                ctk.CTkLabel(info, text=players, text_color=GOLD, font=(FONT, 11), anchor='w').pack(fill='x', pady=(7, 0))
                 actions = ctk.CTkFrame(card, fg_color='transparent')
                 actions.pack(side='right', padx=16, pady=12)
                 self.btn(actions, tr('Hubungkan'), lambda code=server['join_code']: self.connect_server(code), primary=True, width=120).pack(pady=(0, 6))
-                self.btn(actions, tr('Buka halaman'), lambda code=server['join_code']: self.open_link('https://cfx.re/join/' + code), width=120, height=30).pack()
+                self.btn(actions, tr('Buka halaman'), lambda code=server['join_code']: self.open_link(page_url(code)), width=120, height=30).pack()
             if not self.catalog['servers']:
                 ctk.CTkLabel(self.server_list, text=tr('Tidak ada server dalam daftar.'), text_color=MUTED).pack(pady=30)
+
+        def periodic_status(self):
+            if self.closed:
+                return
+            if self.page == 'servers' or not self.server_statuses:
+                self.refresh_server_status()
+            self.after(60000, self.periodic_status)
+
+        def refresh_server_status(self):
+            if self.closed or self.status_syncing:
+                return
+            self.status_syncing = True
+            codes = [server['join_code'] for server in self.catalog['servers']]
+            def worker():
+                self.results.append(('server_status', fetch_statuses(codes)))
+            threading.Thread(target=worker, daemon=True).start()
 
         def periodic_servers(self):
             if self.closed:
@@ -887,15 +909,27 @@ def main():
             self.dns_choice = ctk.CTkOptionMenu(dr, values=['Default (ISP)', 'Cloudflare', 'Google'], width=165, fg_color='#30222a', button_color='#6d2e3b', button_hover_color=RED, font=(FONT, 12))
             self.dns_choice.pack(side='left', padx=12)
             self.btn(dr, tr('Terapkan DNS'), self.dns, primary=True, width=140).pack(side='right')
-            self.animated_art(page, 'tools', BG, 'tools').grid(row=5, column=0, pady=(0, 0))
+            language_card = ctk.CTkFrame(page, fg_color=CARD, border_width=1, border_color=LINE, corner_radius=15)
+            language_card.grid(row=5, column=0, sticky='ew', pady=(0, 14))
+            ctk.CTkLabel(language_card, text=tr('BAHASA APLIKASI'), text_color=GOLD, font=(FONT, 14, 'bold')).pack(anchor='w', padx=20, pady=(14, 8))
+            language = ctk.CTkSegmentedButton(language_card, values=['Indonesia', 'English'], command=self.change_language, selected_color=RED, selected_hover_color='#d13747', unselected_color='#292026', height=28)
+            language.set('English' if i18n.LANGUAGE == 'en' else 'Indonesia')
+            language.pack(anchor='w', padx=20, pady=(0, 14))
+            self.language_selector = language
+
 
         def poll(self):
             while self.results:
                 kind, value = self.results.pop(0)
-                if kind == 'catalog':
+                if kind == 'server_status':
+                    self.status_syncing = False
+                    self.server_statuses = value
+                    self.render_servers()
+                elif kind == 'catalog':
                     self.catalog_syncing = False
                     self.catalog = value
                     self.render_servers()
+                    self.refresh_server_status()
                     self.catalog_status.configure(text=tr('Daftar tersinkron dari GitHub.'))
                 elif kind == 'catalog_error':
                     self.catalog_syncing = False

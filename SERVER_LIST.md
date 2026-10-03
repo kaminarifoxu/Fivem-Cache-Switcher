@@ -22,3 +22,5 @@ Ganti `abc123` dengan kode join server yang sebenarnya. `id` harus unik. `join_c
 Daftar awal diperiksa pada 3 Oktober 2026 menggunakan halaman join Cfx.re. Ini pilihan komunitas Indonesia dengan jejak jumlah pemain besar, bukan peringkat pemain langsung. Kode join dapat berubah; whitelist, antrean, dan persyaratan bergabung ditentukan masing-masing server. Connect membuka handler FiveM yang terdaftar di Windows; jalankan FiveM sekali bila handler belum terdaftar. Daftar tidak mengubah cache atau profil secara otomatis.
 
 Saat offline atau JSON tidak valid, aplikasi mempertahankan daftar valid terakhir. Nama/deskripsi merupakan data dan tidak dijalankan sebagai kode.
+
+Jumlah pemain / kapasitas dan deskripsi diambil dari API daftar server FiveM (`frontend.cfx-services.net`). Angka merupakan snapshot dan dapat tertunda. Aplikasi memeriksa setiap menit saat halaman server dibuka; kegagalan tidak dianggap nol pemain. Open page menggunakan kode join yang sama untuk halaman detail di servers.fivem.net.

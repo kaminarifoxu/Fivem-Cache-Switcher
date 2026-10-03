@@ -13,15 +13,19 @@ def automated_loop(self):
     self.check_updates=lambda *a,**k:None
     self.load_adapters=lambda:None
     self.periodic_servers=lambda:None
+    self.periodic_status=lambda:None
     self.report_callback_exception=lambda *args: errors.append(args)
     def verify():
         try:
             assert self.nav['servers'].cget('text')=='Daftar server'
+            assert self.language_selector.master.master is self.pages['tools']
             self.show_page('servers')
             self.change_language('English')
             assert self.nav['servers'].cget('text')=='Server list'
             assert self.page=='servers'
             assert len(self.catalog['servers'])>=5
+            self.server_statuses = {self.catalog['servers'][0]['join_code']: {'available':True,'clients':123,'maximum':2048,'description':'Official description','checked':'12:00:00'}}
+            self.render_servers()
             self.change_language('Indonesia')
             assert self.nav['servers'].cget('text')=='Daftar server'
             self.show_page('tools')
