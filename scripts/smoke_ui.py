@@ -76,6 +76,22 @@ def automated_loop(self):
                 (int(card.grid_info()["row"]), int(card.grid_info()["column"]))
                 for card in cards
             ] == [(i // 3, i % 3) for i in range(7)]
+            # Icon controls retain clear tooltips and dispatch to the right profile.
+            for action in ("Nama", "Hapus"):
+                from ganov.i18n import tr
+                control = next(b for b in self.buttons if getattr(b, "tooltip_text", "") == tr(action))
+                assert control.cget("text") == ""
+                assert isinstance(control.cget("image"), ctk.CTkImage)
+            rename = next(b for b in self.buttons if getattr(b, "tooltip_text", "") == "Nama")
+            self.update_idletasks()
+            rename._canvas.event_generate("<Enter>")
+            import tkinter as tk
+            hovered = tk.BooleanVar(master=self, value=False)
+            self.after(550, lambda: hovered.set(True))
+            self.wait_variable(hovered)
+            assert any(isinstance(w, ctk.CTkToplevel) for w in self.winfo_children()), "tooltip not shown"
+            rename._canvas.event_generate("<Leave>")
+            assert not any(isinstance(w, ctk.CTkToplevel) for w in self.winfo_children()), "tooltip not dismissed"
             original_switch = self.switch
             switched = []
             self.switch = switched.append
@@ -148,6 +164,9 @@ def automated_loop(self):
             self.update_dialog = None
             self.change_language("English")
             assert self.nav["servers"].cget("text") == "Server list"
+            assert self.nav["servers"].cget("image") is not None
+            assert any(getattr(b, "tooltip_text", "") == "Next" for b in self.buttons)
+
             assert self.page == "servers"
             self.update_idletasks()
             assert self.update_banner.winfo_viewable(), "global update banner hidden"
@@ -195,7 +214,7 @@ def automated_loop(self):
                 raise OSError("Controlled offline test")
 
             self.global_update_button.invoke()
-            with patch.object(cache_switcher.sys, "frozen", True, create=True), patch(
+            with patch.object(cache_switcher.os, "name", "nt"), patch.object(cache_switcher.sys, "frozen", True, create=True), patch(
                 "ganov.auto_updater.download_update", side_effect=failed_download
             ):
                 self.start_update_button.invoke()
@@ -219,7 +238,7 @@ def automated_loop(self):
             self.after(500, self.close)
 
     self.after(1800, verify)
-    self.after(10000, self.close)
+    self.after(20000, self.close)
     original(self)
 
 
@@ -233,3 +252,4 @@ with tempfile.TemporaryDirectory() as tmp:
 if errors:
     raise AssertionError(errors)
 print("PASS: language switching, catalog UI, and page navigation.")
+

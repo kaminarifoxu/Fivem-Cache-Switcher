@@ -32,6 +32,7 @@ def main():
     from .server_status import fetch_statuses, page_url
     from .server_icons import fetch_icons
     from .wallpaper import Wallpaper, WallpaperText
+    from .ui_icons import make_icon
 
     ui_settings_path = os.path.join(
         os.path.dirname(user_config_path()), "ui_settings.json"
@@ -150,7 +151,7 @@ def main():
             ).pack(pady=(8, 0))
             ctk.CTkLabel(
                 frame,
-                text="FiveM Launcher & Profiles",
+                text="Cache Switch",
                 text_color=MUTED,
                 font=(FONT, 12),
             ).pack(pady=(0, 19))
@@ -240,13 +241,13 @@ def main():
             brand = WallpaperText(side, side._wallpaper_layer, width=100, height=64)
             with Image.open(os.path.join(assets, "ganomabi.ico")) as logo:
                 brand.art_image = logo.convert("RGBA")
-            brand.pack(pady=(24, 8))
+            brand.pack(pady=(20, 6))
             text_label(
-                side, text=APP_NAME, text_color=GOLD, font=(FONT, 16, "bold")
+                side, text="GanoV", text_color=GOLD, font=(FONT, 20, "bold")
             ).pack(pady=(0, 3))
             text_label(
                 side,
-                text="FiveM Launcher & Profiles",
+                text="Cache Switch",
                 text_color=MUTED,
                 font=(FONT, 11),
             ).pack(pady=(0, 22))
@@ -618,7 +619,7 @@ def main():
                 actions.grid(
                     row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=(3, 10)
                 )
-                actions.grid_columnconfigure((0, 1), weight=1)
+                actions.grid_columnconfigure(1, weight=1)
                 self.btn(
                     actions,
                     tr("Halaman"),
@@ -800,30 +801,73 @@ def main():
             self.after(50, tick)
             return canvas
 
-        def btn(self, parent, text, command, primary=False, width=150, height=38):
+        def tooltip(self, widget, text):
+            state = {"timer": None, "window": None}
+            def hide(event=None):
+                if state["timer"] is not None:
+                    widget.after_cancel(state["timer"])
+                    state["timer"] = None
+                if state["window"] is not None:
+                    state["window"].destroy()
+                    state["window"] = None
+            def show():
+                state["timer"] = None
+                if not widget.winfo_exists():
+                    return
+                tip = ctk.CTkToplevel(self)
+                state["window"] = tip
+                tip.withdraw()
+                tip.overrideredirect(True)
+                tip.attributes("-topmost", True)
+                ctk.CTkLabel(tip, text=text, fg_color=CARD, text_color=WHITE,
+                             corner_radius=6, font=(FONT, 11), padx=10, pady=6).pack()
+                tip.update_idletasks()
+                x = min(widget.winfo_rootx(), self.winfo_screenwidth() - tip.winfo_reqwidth() - 8)
+                y = min(widget.winfo_rooty() + widget.winfo_height() + 6,
+                        self.winfo_screenheight() - tip.winfo_reqheight() - 8)
+                tip.geometry(f"+{max(0, x)}+{max(0, y)}")
+                tip.deiconify()
+            def enter(event=None):
+                hide()
+                state["timer"] = widget.after(450, show)
+            for event in ("<Enter>", "<FocusIn>"):
+                widget.bind(event, enter, add=True)
+            for event in ("<Leave>", "<FocusOut>", "<ButtonPress-1>", "<Destroy>"):
+                widget.bind(event, hide, add=True)
+            widget.tooltip_text = text
 
+        def btn(self, parent, text, command, primary=False, width=150, height=38,
+                icon=None, icon_only=False, tooltip=None):
+            icon_labels = {
+                "Profil kota": "grid", "Daftar server": "servers", "Peralatan": "tools",
+                "Jalankan FiveM": "play", "Pilih FiveM.exe": "folder",
+                "Buka folder data": "folder", "Pulihkan Switch": "recover",
+                "Cek update": "download", "Tambah kota": "plus", "+ Tambah kota": "plus",
+                "Sync server": "refresh", "Refresh": "refresh", "Nama": "edit", "Hapus": "trash",
+                "Sedang aktif": "check", "Aktifkan": "play", "Bersihkan": "trash",
+                "Terapkan DNS": "check", "Halaman": "external", "Hubungkan": "play",
+                "Sebelumnya": "left", "Berikutnya": "right", "GitHub": "external", "Donasi": "heart",
+            }
+            icon = icon or next((name for label, name in icon_labels.items() if text == tr(label)), None)
+            compact = ("Nama", "Hapus", "Sync server", "Refresh", "Halaman", "Sebelumnya", "Berikutnya", "GitHub", "Donasi")
+            icon_only = icon_only or any(text == tr(label) for label in compact)
+            key = ("outline", icon, primary, icon == "trash")
+            if icon and key not in self.images:
+                self.images[key] = make_icon(icon, primary, icon == "trash")
             def guarded():
                 if not self.busy:
                     command()
-
             b = ctk.CTkButton(
-                parent,
-                text=text,
-                command=guarded,
-                width=width,
-                height=height,
+                parent, text="" if icon_only else text, command=guarded,
+                image=self.images[key] if icon else None,
+                width=36 if icon_only else width, height=height,
                 fg_color=RED if primary else app_theme.color("#f1e3cc"),
-                hover_color=(
-                    app_theme.color("#cf3444")
-                    if primary
-                    else app_theme.color("#e6d0aa")
-                ),
+                hover_color=app_theme.color("#cf3444") if primary else app_theme.color("#e6d0aa"),
                 text_color=app_theme.color("#ffffff") if primary else WHITE,
-                border_color=RED if primary else LINE,
-                border_width=1,
-                corner_radius=6,
-                font=(FONT, 12),
+                border_width=0, corner_radius=8, font=(FONT, 12),
             )
+            if icon_only or tooltip:
+                self.tooltip(b, tooltip or text)
             self.buttons.append(b)
             return b
 
@@ -883,8 +927,8 @@ def main():
             )
             summary.grid(row=1, column=0, sticky="ew", pady=(0, 16))
             summary.grid_columnconfigure(1, weight=1)
-            self.art(summary, "status", CARD).grid(
-                row=0, column=0, padx=(12, 4), pady=10
+            ctk.CTkLabel(summary, text="", image=make_icon("grid"), width=32).grid(
+                row=0, column=0, padx=(16, 4), pady=10
             )
             text = ctk.CTkFrame(summary, fg_color="transparent")
             text.grid(row=0, column=1, sticky="ew", padx=8, pady=14)
@@ -923,10 +967,10 @@ def main():
             row.grid(row=2, column=0, sticky="ew", pady=(0, 10))
             self.add_wallpaper(row)
             self.count = text_label(
-                row, text=tr("PROFIL KOTA"), font=(FONT, 14, "bold"), text_color=WHITE
+                row, text=tr("Daftar kota"), font=(FONT, 14, "bold"), text_color=WHITE
             )
             self.count.pack(side="left")
-            self.btn(row, tr("+ Tambah kota"), self.add, primary=True, width=142).pack(
+            self.btn(row, tr("Tambah kota"), self.add, primary=True, width=142).pack(
                 side="right"
             )
             self.btn(row, "Refresh", self.refresh, width=90).pack(side="right", padx=8)
@@ -948,11 +992,11 @@ def main():
                 wraplength=780,
                 justify="left",
             )
-            self.path_label.grid(row=4, column=0, sticky="ew", pady=(9, 0))
+            
             text_label(
                 page,
                 text=tr(
-                    "Tutup FiveM sebelum switch. Cache kota disimpan secara terpisah."
+                    "Tutup FiveM sebelum mengganti cache."
                 ),
                 anchor="w",
                 text_color=app_theme.color("#786757"),
@@ -962,7 +1006,7 @@ def main():
         def build_tools(self, page):
             page.grid_columnconfigure((0, 1), weight=1, uniform="tools")
             text_label(
-                page, text=tr("PERALATAN"), font=(FONT, 24, "bold"), text_color=WHITE
+                page, text=tr("Peralatan"), font=(FONT, 24, "bold"), text_color=WHITE
             ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
             text_label(
                 page,
@@ -1003,7 +1047,7 @@ def main():
                 )
                 return panel
 
-            install = card(2, 0, tr("INSTALASI & PEMULIHAN"), 2)
+            install = card(2, 0, tr("Instalasi"), 2)
             self.exe_label = text_label(
                 install,
                 text="",
@@ -1020,7 +1064,7 @@ def main():
             actions.grid(
                 row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14)
             )
-            actions.grid_columnconfigure((0, 1, 2), weight=1)
+            actions.grid_columnconfigure(0, weight=1)
             for column, (text, command, primary) in enumerate(
                 [
                     (tr("Pilih FiveM.exe"), self.change_path, True),
@@ -1029,7 +1073,7 @@ def main():
                 ]
             ):
                 self.btn(
-                    actions, text, command, primary=primary, width=140, height=34
+                    actions, text, command, primary=primary, width=140, height=34, icon_only=column > 0
                 ).grid(
                     row=0, column=column, sticky="ew", padx=(0, 8) if column < 2 else 0
                 )
@@ -1635,7 +1679,7 @@ def main():
             total = sum((n for n in self.raw_sizes.values() if n is not None))
             self.metric_size.configure(text=format_size(total) + tr(" tersimpan"))
             self.count.configure(
-                text=f"{tr('PROFIL KOTA  /  ')}{len(self.store.profiles):02d}"
+                text=f"{tr('Daftar kota')} · {len(self.store.profiles)}"
             )
             if not self.store.profiles:
                 empty = ctk.CTkFrame(
@@ -1649,7 +1693,7 @@ def main():
                 self.art(empty, "empty", CARD).pack(pady=(18, 3))
                 ctk.CTkLabel(
                     empty,
-                    text=tr("Perjalanan baru dimulai di sini."),
+                    text=tr("Belum ada profil"),
                     text_color=WHITE,
                     font=(FONT, 16, "bold"),
                 ).pack()
@@ -1709,7 +1753,7 @@ def main():
                 ).pack(fill="x")
                 ctk.CTkLabel(
                     info,
-                    text=(tr("AKTIF  /  ") if current else tr("TERSIMPAN  /  "))
+                    text=(tr("AKTIF  /  ") if current else "")
                     + self.sizes.get(pid, tr("Menghitung...")),
                     anchor="w",
                     text_color=GOLD if current else MUTED,
@@ -1717,14 +1761,14 @@ def main():
                 ).pack(fill="x", pady=(2, 0))
                 actions = ctk.CTkFrame(card, fg_color="transparent")
                 actions.grid(row=2, column=0, sticky="ew", padx=10, pady=(2, 12))
-                actions.grid_columnconfigure((0, 1, 2), weight=1, uniform="actions")
+                actions.grid_columnconfigure(0, weight=1)
                 switch = self.btn(
                     actions,
                     tr("Sedang aktif") if current else tr("Aktifkan"),
                     lambda p=pid: self.switch(p),
                     primary=not current,
-                    width=78,
-                    height=30,
+                    width=96,
+                    height=32,
                 )
                 switch.grid(row=0, column=0, sticky="ew", padx=(0, 4))
                 if current:
@@ -1733,15 +1777,15 @@ def main():
                     actions,
                     tr("Nama"),
                     lambda p=pid: self.rename(p),
-                    width=54,
-                    height=30,
+                    width=36,
+                    height=32,
                 ).grid(row=0, column=1, sticky="ew", padx=(0, 4))
                 self.btn(
                     actions,
                     tr("Hapus"),
                     lambda p=pid: self.delete(p),
-                    width=54,
-                    height=30,
+                    width=36,
+                    height=32,
                 ).grid(row=0, column=2, sticky="ew")
             if self.busy:
                 for b in self.buttons:
@@ -2134,3 +2178,4 @@ def main():
     if mutex:
         kernel.CloseHandle.argtypes = [ctypes.c_void_p]
         kernel.CloseHandle(mutex)
+

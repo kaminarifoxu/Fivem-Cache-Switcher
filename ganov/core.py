@@ -10,7 +10,7 @@ import time
 import threading
 import ctypes
 
-VERSION = "2.7.12"
+VERSION = "2.8.0"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -659,3 +659,4 @@ def set_dns(adapter, choice):
         creationflags=0x08000000,
         timeout=15,
     )
+

@@ -6,7 +6,7 @@ Pengelola profil cache FiveM untuk Windows 10/11 64-bit.
 
 ## Cara memakai
 
-1. Jalankan `GanoV-Cache-Switch.exe`, lalu klik **Pilih FiveM.exe**.
+1. Jalankan `GanoV-Cache-Switch.exe`, lalu buka **Peralatan → Pilih FiveM.exe**.
 2. Tambahkan profil kota atau pilih profil yang tersedia.
 3. Tutup FiveM sebelum menekan **Aktifkan**.
 4. Klik **Jalankan FiveM** untuk bermain.
@@ -14,6 +14,10 @@ Pengelola profil cache FiveM untuk Windows 10/11 64-bit.
 Cukup satu EXE; tidak perlu Python atau aset terpisah. Pengaturan disimpan otomatis di `%LOCALAPPDATA%\GanoV-Cache-Switch`.
 
 Pilih **Indonesia / English** di **Peralatan**. Gunakan **Daftar server → Hubungkan** untuk membuka koneksi FiveM. Daftar server disinkronkan otomatis dari GitHub. [Cara mengubah daftar](SERVER_LIST.md).
+
+## Tampilan
+
+UI lebih ringkas dengan ikon garis, tooltip saat kursor diarahkan ke tombol, serta tema terang/gelap. Ikon ubah nama, hapus, refresh, sinkronisasi, navigasi halaman, GitHub dan donasi menggantikan label berulang. Tindakan utama tetap berlabel. Wallpaper GANOMABI dibuat lebih lembut agar kontrol mudah dibaca. Ikon digambar oleh aplikasi dan ikut dibundel dalam EXE; tidak memakai aset atau font eksternal dari Flaticon.
 
 ## Update
 
@@ -26,3 +30,4 @@ Lihat [riwayat perubahan](https://github.com/kaminarifoxu/Fivem-Cache-Switcher/r
 **Copyright © 2026 GANOMABI / amiinarii.** Lihat [COPYRIGHT.md](COPYRIGHT.md).
 
 Untuk mengedit kode: [panduan struktur dan build](docs/DEVELOPMENT.md).
+

@@ -4,6 +4,11 @@ from pathlib import Path
 
 LANGUAGE = "id"
 EN = {
+    "Tutup FiveM sebelum mengganti cache.": "Close FiveM before switching cache.",
+    "Tambah kota": "Add city",
+    "Daftar kota": "Cities",
+    "Instalasi": "Installation",
+    "Belum ada profil": "No profiles yet",
     "Profil kota": "City profiles",
     "Peralatan": "Tools",
     "Jalankan FiveM": "Launch FiveM",
@@ -218,3 +223,4 @@ EN.update(
         "Jaringan DNS": "DNS network",
     }
 )
+

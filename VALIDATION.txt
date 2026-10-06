@@ -1,10 +1,8 @@
-GanoV-Cache-Switch v2.3.0
+GanoV-Cache-Switch v2.8.0
 Copyright (c) 2026 GANOMABI / amiinarii.
 
-25 tests passed: cache switching, detection, rollback, recovery, and GitHub Releases checks.
-Virtual-display UI check passed: startup update notification, themed popup, download action, close.
-PE metadata verified: GanoV-Cache-Switch, 2.3.0, GANOMABI copyright and icon.
-Embedded Python 3.14 code checked for update checker and 29 bundled assets.
-Local build uses runtime from supplied original EXE.
-Windows EXE execution, real FiveM, DNS and Temp operations not tested locally.
-GitHub Actions is configured to build a fresh EXE on Windows from source for releases.
+Local Linux checks: 48 unit tests passed; 1 Windows integration test skipped.
+Real Tk smoke check: icon images/tooltips, profile action dispatch, theme and language switching, server list, update panel, mocked download failure.
+Visual review: profile, server and tools pages at 1180x820 and 1040x760.
+GitHub Actions runs native Windows tests, builds the EXE and exercises packaged UI/updater before publication.
+Real FiveM, DNS and Temp operations were not tested on a user's Windows computer.
