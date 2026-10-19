@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import stat
+import time
 import uuid
 from pathlib import Path
 
@@ -144,13 +145,25 @@ def verified_move(source, destination, record, index, persist, progress):
     for directory in source_data["dirs"]:
         os.makedirs(os.path.join(stage, directory), exist_ok=True)
     done = 0
+    # tasklist is expensive on Windows: poll by elapsed time, not file count.
+    core.no_fivem()
+    next_process_check = time.monotonic() + 1.0
+
+    def check_running():
+        nonlocal next_process_check
+        now = time.monotonic()
+        if now >= next_process_check:
+            core.no_fivem()
+            next_process_check = time.monotonic() + 1.0
+
     progress("copy", 0, total)
     for relative in source_data["files"]:
-        core.no_fivem()
+        check_running()
         with open(os.path.join(source, relative), "rb") as src, open(
             os.path.join(stage, relative), "xb"
         ) as dst:
             while chunk := src.read(4 * 1024 * 1024):
+                check_running()
                 dst.write(chunk)
                 done += len(chunk)
                 progress("copy", done, total)

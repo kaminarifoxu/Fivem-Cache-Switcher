@@ -53,6 +53,39 @@ class StorageTests(unittest.TestCase):
             self.assertTrue((Path(location) / "empty" / "nested").is_dir())
         self.assertFalse(os.path.exists(self.store.journal))
 
+    def test_process_checks_do_not_scale_with_small_file_count(self):
+        source = self.root / "many-small-files"
+        destination = self.hdd / "destination"
+        source.mkdir()
+        for index in range(250):
+            (source / str(index)).write_bytes(b"cache")
+        with patch("ganov.core.no_fivem") as check, patch.object(
+            storage.time, "monotonic", return_value=100.0
+        ):
+            storage.verified_move(
+                str(source), str(destination), {"token": "a" * 32},
+                0, lambda: None, lambda *args: None,
+            )
+        self.assertEqual(check.call_count, 4)
+        self.assertEqual(len(list(destination.iterdir())), 250)
+        self.assertFalse(source.exists())
+
+    def test_process_check_during_large_file_stops_before_source_cleanup(self):
+        source = self.root / "large-file"
+        destination = self.hdd / "destination"
+        source.mkdir()
+        (source / "cache").write_bytes(b"x" * (9 * 1024 * 1024))
+        with patch("ganov.core.no_fivem", side_effect=[
+            None, None, RuntimeError("FiveM started")
+        ]), patch.object(storage.time, "monotonic", side_effect=[0.0, 0.0, 2.0]):
+            with self.assertRaisesRegex(RuntimeError, "FiveM started"):
+                storage.verified_move(
+                    str(source), str(destination), {"token": "b" * 32},
+                    0, lambda: None, lambda *args: None,
+                )
+        self.assertEqual((source / "cache").stat().st_size, 9 * 1024 * 1024)
+        self.assertFalse(destination.exists())
+
     def test_enable_moves_only_inactive_cache_then_round_trip_and_disable(self):
         active_before = storage.inventory(self.store.active)
         self.enable()
