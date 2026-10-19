@@ -21,6 +21,7 @@ def main():
     try:
         for theme, language, action in [
             ("light", "id", "confirm"),
+            ("dark", "id", "confirm"),
             ("dark", "en", "cancel"),
             ("dark", "id", "close"),
             ("light", "en", "escape"),
@@ -30,6 +31,7 @@ def main():
             ctk.set_appearance_mode(theme)
             root.configure(fg_color=app_theme.color("#f7f0e3"))
             returning = action in ("close", "escape")
+            current_folder = folder if language == "en" else "D:/FiveM/Fivem Cache"
 
             def inspect():
                 dialogs = [w for w in root.winfo_children() if isinstance(w, TransferDialog)]
@@ -41,8 +43,8 @@ def main():
                 try:
                     assert dialog.grab_current() == dialog, "Confirmation is not modal"
                     assert dialog.result is False, "Confirmation starts approved"
-                    assert dialog.path_box.get("1.0", "end-1c") == folder
-                    assert dialog.path_box.cget("state") == "disabled"
+                    assert dialog.path_box.get("1.0", "end-1c") == current_folder
+                    assert dialog.path_box._textbox.cget("state") == "disabled"
                     assert dialog.confirm_button.cget("text") == i18n.tr("Kembalikan cache" if returning else "Pindahkan cache")
                     assert dialog.cancel_button.winfo_rooty() + dialog.cancel_button.winfo_height() < dialog.winfo_rooty() + dialog.winfo_height()
                     assert dialog.confirm_button.winfo_rootx() + dialog.confirm_button.winfo_width() <= dialog.winfo_rootx() + dialog.winfo_width()
@@ -66,7 +68,7 @@ def main():
 
             root.after(350, inspect)
             result = ask_transfer(root, i18n.tr("Kembalikan cache ke drive FiveM?" if returning else "Pindahkan cache nonaktif?"),
-                                  i18n.tr("Semua cache nonaktif akan disalin kembali. Pastikan ruang drive FiveM cukup." if returning else "Hanya cache kota nonaktif yang dipindahkan. Cache aktif tetap di drive FiveM."), folder, returning)
+                                  i18n.tr("Semua cache nonaktif akan disalin kembali. Pastikan ruang drive FiveM cukup." if returning else "Hanya cache kota nonaktif yang dipindahkan. Cache aktif tetap di drive FiveM."), current_folder, returning)
             assert result is (action == "confirm"), (action, result, errors)
             assert root.grab_current() is None, "Modal grab was not released"
         assert not errors, errors
