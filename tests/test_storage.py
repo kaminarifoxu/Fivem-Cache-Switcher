@@ -86,6 +86,62 @@ class StorageTests(unittest.TestCase):
         self.assertEqual((source / "cache").stat().st_size, 9 * 1024 * 1024)
         self.assertFalse(destination.exists())
 
+    def test_resume_reuses_completed_files_and_replaces_incomplete_file(self):
+        source = self.root / "resume-source"
+        destination = self.hdd / "resume-destination"
+        source.mkdir()
+        (source / "a-complete").write_bytes(b"complete" * 100)
+        (source / "b-partial").write_bytes(b"second" * 100)
+        record = {"token": "d" * 32}
+        original_open = open
+
+        def interrupt(path, mode="r", *args, **kwargs):
+            if mode == "xb" and str(path).endswith("b-partial"):
+                with original_open(path, "wb") as stream:
+                    stream.write(b"partial")
+                raise SimulatedCrash()
+            return original_open(path, mode, *args, **kwargs)
+
+        with patch("builtins.open", side_effect=interrupt):
+            with self.assertRaises(SimulatedCrash):
+                storage.verified_move(str(source), str(destination), record,
+                                      0, lambda: None, lambda *args: None)
+        stage = Path(str(destination) + ".ganov-partial-" + record["token"])
+        (stage / "obsolete").mkdir()
+        (stage / "obsolete" / "old").write_bytes(b"old")
+        writes = []
+
+        def track(path, mode="r", *args, **kwargs):
+            if mode == "xb":
+                writes.append(Path(path).name)
+            return original_open(path, mode, *args, **kwargs)
+
+        usage = shutil.disk_usage(self.hdd)
+        # Enough for the missing file, but not enough for the whole cache.
+        with patch("builtins.open", side_effect=track), patch.object(
+            storage.shutil, "disk_usage", return_value=usage._replace(free=600)
+        ):
+            storage.verified_move(str(source), str(destination), record,
+                                  0, lambda: None, lambda *args: None)
+        self.assertEqual(writes, ["b-partial"])
+        self.assertEqual((destination / "a-complete").read_bytes(), b"complete" * 100)
+        self.assertEqual((destination / "b-partial").read_bytes(), b"second" * 100)
+        self.assertFalse((destination / "obsolete").exists())
+        self.assertFalse(source.exists())
+
+    def test_resume_rechecks_completed_file_content_not_just_its_size(self):
+        source = self.root / "resume-source"
+        destination = self.hdd / "resume-destination"
+        source.mkdir()
+        (source / "cache").write_bytes(b"good")
+        record = {"token": "e" * 32, "copying": 0}
+        stage = Path(str(destination) + ".ganov-partial-" + record["token"])
+        stage.mkdir()
+        (stage / "cache").write_bytes(b"evil")
+        storage.verified_move(str(source), str(destination), record,
+                              0, lambda: None, lambda *args: None)
+        self.assertEqual((destination / "cache").read_bytes(), b"good")
+
     def test_enable_moves_only_inactive_cache_then_round_trip_and_disable(self):
         active_before = storage.inventory(self.store.active)
         self.enable()

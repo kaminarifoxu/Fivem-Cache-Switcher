@@ -10,7 +10,7 @@ Pilih HDD pada drive fisik berbeda untuk mengosongkan SSD. Aplikasi tidak mendet
 
 Pemindahan lintas drive menyalin data, memverifikasi isi dengan SHA-256, lalu menghapus sumber. Drive tujuan membutuhkan ruang untuk seluruh cache yang dipindahkan. Cache besar membutuhkan waktu; progres penyalinan dan verifikasi ditampilkan. Jangan menjalankan FiveM atau mengubah folder cache selama proses berlangsung.
 
-Jika HDD terlepas, ruang habis, atau aplikasi terhenti, sambungkan kembali drive atau kosongkan ruang lalu pilih **Lanjutkan pemindahan** di Peralatan. Catatan transaksi disimpan agar proses dapat diteruskan. Sumber tidak dihapus sebelum salinan terverifikasi. Jika transaksi belum selesai, peluncuran FiveM dari aplikasi diblokir.
+Jika HDD terlepas, ruang habis, atau aplikasi terhenti, sambungkan kembali drive atau kosongkan ruang lalu pilih **Lanjutkan pemindahan** di Peralatan. Catatan transaksi disimpan agar proses dapat diteruskan. File lengkap dalam salinan sementara diverifikasi dengan SHA-256 dan dipakai kembali; hanya file yang kurang, berubah, atau belum utuh yang disalin ulang. File besar yang terputus di tengah tetap disalin ulang dari awal file tersebut, bukan dari awal seluruh folder. Sumber tidak dihapus sebelum salinan terverifikasi. Jika transaksi belum selesai, peluncuran FiveM dari aplikasi diblokir.
 
 Pilih **Semua di drive FiveM** untuk mengembalikan semua profil ke penyimpanan lokal; pastikan ruangnya cukup. Jangan memindahkan atau menghapus folder arsip secara manual. Folder arsip memiliki penanda kepemilikan untuk mencegah pemakaian folder yang salah.
 

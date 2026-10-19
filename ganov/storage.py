@@ -124,6 +124,7 @@ def verified_move(source, destination, record, index, persist, progress):
         return
     source_data = inventory(source, lambda n: progress("scan", n, 0))
     total = sum(size for size, _ in source_data["files"].values())
+    reusable = set()
     if os.path.lexists(stage):
         if record.get("copying") != index:
             raise RuntimeError(
@@ -131,20 +132,32 @@ def verified_move(source, destination, record, index, persist, progress):
             )
         plain_parents(stage)
         core.check_tree(stage)
-        # Remove only this transaction's unfinished copy, never a source cache.
-        inventory(stage)
-        shutil.rmtree(stage)
-    if shutil.disk_usage(os.path.dirname(destination)).free < total:
+        # Reuse only matching bytes in this transaction's owned staging folder.
+        staged = inventory(stage, lambda n: progress("verify", n, total))
+        for relative, signature in staged["files"].items():
+            if source_data["files"].get(relative) == signature:
+                reusable.add(relative)
+            else:
+                os.unlink(os.path.join(stage, relative))
+        source_dirs = set(source_data["dirs"])
+        for directory in sorted(
+            staged["dirs"], key=lambda p: len(Path(p).parts), reverse=True
+        ):
+            if directory not in source_dirs:
+                os.rmdir(os.path.join(stage, directory))
+    reused_bytes = sum(source_data["files"][p][0] for p in reusable)
+    if shutil.disk_usage(os.path.dirname(destination)).free < total - reused_bytes:
         raise RuntimeError(
             "Ruang tujuan tidak cukup. Kosongkan ruang, lalu klik Lanjutkan transfer."
         )
     record["copying"] = index
     record.pop("verified", None)
     persist()
-    os.mkdir(stage)
+    if not os.path.lexists(stage):
+        os.mkdir(stage)
     for directory in source_data["dirs"]:
         os.makedirs(os.path.join(stage, directory), exist_ok=True)
-    done = 0
+    done = reused_bytes
     # tasklist is expensive on Windows: poll by elapsed time, not file count.
     core.no_fivem()
     next_process_check = time.monotonic() + 1.0
@@ -156,9 +169,11 @@ def verified_move(source, destination, record, index, persist, progress):
             core.no_fivem()
             next_process_check = time.monotonic() + 1.0
 
-    progress("copy", 0, total)
+    progress("copy", done, total)
     for relative in source_data["files"]:
         check_running()
+        if relative in reusable:
+            continue
         with open(os.path.join(source, relative), "rb") as src, open(
             os.path.join(stage, relative), "xb"
         ) as dst:
