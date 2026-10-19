@@ -10,6 +10,7 @@ from .i18n import tr
 
 class TransferDialog(ctk.CTkToplevel):
     def __init__(self, parent, title, description, folder, returning=False):
+        self._dialog_timers = set()
         super().__init__(parent)
         self.withdraw()
         self.result = False
@@ -90,6 +91,31 @@ class TransferDialog(ctk.CTkToplevel):
         x = max(0, min(x, parent.winfo_screenwidth() - round(width * scale)))
         y = max(0, min(y, parent.winfo_screenheight() - round(height * scale)))
         self.geometry(f"{width}x{height}+{x}+{y}")
+
+    def after(self, ms, func=None, *args):
+        if func is None:
+            return super().after(ms)
+        timer = None
+
+        def invoke():
+            self._dialog_timers.discard(timer)
+            if self.winfo_exists():
+                return func(*args)
+
+        timer = super().after(ms, invoke)
+        self._dialog_timers.add(timer)
+        return timer
+
+    def destroy(self):
+        # CTk queues Windows titlebar/focus work. Cancel it before the window
+        # disappears, including when the parent application is being closed.
+        for timer in tuple(self._dialog_timers):
+            try:
+                self.after_cancel(timer)
+            except tk.TclError:
+                pass
+        self._dialog_timers.clear()
+        super().destroy()
 
     def finish(self, accepted):
         self.result = bool(accepted)

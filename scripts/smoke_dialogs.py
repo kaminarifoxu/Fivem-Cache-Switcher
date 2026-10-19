@@ -12,6 +12,7 @@ from ganov.dialogs import ask_transfer, TransferDialog
 def main():
     errors = []
     root = ctk.CTk()
+    root.report_callback_exception = lambda kind, value, trace: errors.append(str(value))
     root.geometry("1000x800+20+20")
     root.update()
     output = Path("artifacts/dialogs")
