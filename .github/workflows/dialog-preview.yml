@@ -1,0 +1,37 @@
+name: GanoV storage dialog preview
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ganov/**'
+      - 'scripts/**'
+      - '.github/workflows/dialog-preview.yml'
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -v
+      - run: python -m scripts.smoke_dialogs
+        timeout-minutes: 2
+      - run: python -m scripts.smoke_ui
+      - run: python -m scripts.smoke_storage_ui
+      - run: python -m scripts.build_windows
+      - run: python -m scripts.smoke_packaged_ui
+      - run: python -m scripts.smoke_frozen_update
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GanoV-2.9.1-Dialog-Preview
+          path: dist/GanoV-Cache-Switch.exe
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: GanoV-Dialog-Screenshots
+          path: artifacts/dialogs/*.png

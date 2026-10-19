@@ -4,6 +4,13 @@ from pathlib import Path
 
 LANGUAGE = "id"
 EN = {
+    "Hanya cache kota nonaktif yang dipindahkan. Cache aktif tetap di drive FiveM.": "Only inactive city caches will move. Active cache stays on the FiveM drive.",
+    "CACHE NONAKTIF": "INACTIVE CACHES",
+    "DRIVE FIVEM": "FIVEM DRIVE",
+    "LOKASI TUJUAN": "DESTINATION FOLDER",
+    "Pindahkan cache": "Move caches",
+    "Kembalikan cache": "Return caches",
+    "Tutup FiveM dan biarkan kedua drive tersambung selama transfer.": "Keep FiveM closed and both drives connected during the transfer.",
     "Tutup FiveM sebelum mengganti cache.": "Close FiveM before switching cache.",
     "Tambah kota": "Add city",
     "Daftar kota": "Cities",
@@ -267,3 +274,4 @@ EN.update(
         "Selesaikan transfer sebelum menjalankan FiveM.": "Complete the transfer before launching FiveM.",
     }
 )
+
