@@ -8,6 +8,9 @@ on:
       - '.github/workflows/dialog-preview.yml'
 permissions:
   contents: read
+concurrency:
+  group: ganov-dialog-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 jobs:
   preview:
     runs-on: windows-latest

@@ -2,6 +2,8 @@
 """Theme-aware storage confirmations. No filesystem operations occur here."""
 
 import os
+import ctypes
+from ctypes import wintypes
 import tkinter as tk
 import customtkinter as ctk
 from . import app_theme
@@ -85,11 +87,19 @@ class TransferDialog(ctk.CTkToplevel):
         self.cancel_button.bind("<Return>", lambda event: self.finish(False))
         self.confirm_button.bind("<Return>", lambda event: self.finish(True))
         scale = ctk.ScalingTracker.get_window_scaling(self)
-        width, height = 560, min(610, max(340, int(parent.winfo_screenheight() / scale) - 100))
+        left, top, right, bottom = 0, 0, parent.winfo_screenwidth(), parent.winfo_screenheight()
+        if os.name == "nt":
+            area = wintypes.RECT()
+            if ctypes.windll.user32.SystemParametersInfoW(48, 0, ctypes.byref(area), 0):
+                left, top, right, bottom = area.left, area.top, area.right, area.bottom
+        width = min(560, max(320, int((right - left - 40) / scale)))
+        height = min(610, max(300, int((bottom - top - 90) / scale)))
         x = parent.winfo_rootx() + (parent.winfo_width() - round(width * scale)) // 2
         y = parent.winfo_rooty() + (parent.winfo_height() - round(height * scale)) // 2
-        x = max(0, min(x, parent.winfo_screenwidth() - round(width * scale)))
-        y = max(0, min(y, parent.winfo_screenheight() - round(height * scale)))
+        # Tk geometry excludes the native titlebar/border. Leave room for those
+        # as well as the taskbar, even if the parent extends beyond the screen.
+        x = max(left + 12, min(x, right - round(width * scale) - 20))
+        y = max(top + 12, min(y, bottom - round(height * scale) - 56))
         self.geometry(f"{width}x{height}+{x}+{y}")
 
     def after(self, ms, func=None, *args):

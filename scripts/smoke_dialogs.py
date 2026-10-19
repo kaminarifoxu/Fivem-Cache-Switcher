@@ -49,6 +49,7 @@ def main():
                     assert dialog.confirm_button.cget("text") == i18n.tr("Kembalikan cache" if returning else "Pindahkan cache")
                     assert dialog.cancel_button.winfo_rooty() + dialog.cancel_button.winfo_height() < dialog.winfo_rooty() + dialog.winfo_height()
                     assert dialog.confirm_button.winfo_rootx() + dialog.confirm_button.winfo_width() <= dialog.winfo_rootx() + dialog.winfo_width()
+                    assert dialog.winfo_rooty() + dialog.winfo_height() <= ImageGrab.grab().height - 12, "Dialog actions extend below the desktop"
                     if action in ("confirm", "cancel"):
                         bbox = (dialog.winfo_rootx(), dialog.winfo_rooty(), dialog.winfo_rootx() + dialog.winfo_width(), dialog.winfo_rooty() + dialog.winfo_height())
                         ImageGrab.grab(bbox=bbox).save(output / f"transfer-{theme}-{language}.png")
