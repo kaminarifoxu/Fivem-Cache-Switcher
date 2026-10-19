@@ -224,3 +224,46 @@ EN.update(
     }
 )
 
+
+EN.update(
+    {
+        "Cache manager": "Cache manager",
+        "DRIVE FIVEM / CACHE AKTIF": "FIVEM DRIVE / ACTIVE CACHE",
+        "ARSIP CACHE / HDD PILIHAN": "CACHE ARCHIVE / CHOSEN HDD",
+        "SIAP DI DRIVE AKTIF": "READY ON THE ACTIVE DRIVE",
+        "Penyimpanan": "Storage",
+        "Penyimpanan SSD / HDD": "SSD / HDD storage",
+        "Pilih folder HDD": "Choose HDD folder",
+        "Pilih folder arsip di HDD": "Choose a cache archive folder on your HDD",
+        "Semua di drive FiveM": "All on FiveM drive",
+        "Lanjutkan transfer": "Resume transfer",
+        "Tidak tersedia": "Unavailable",
+        "HDD belum dipilih / offline": "HDD not selected / offline",
+        "kosong": "free",
+        "Semua cache di drive FiveM": "All caches on FiveM drive",
+        "Belum ada folder arsip. Pilih folder di HDD untuk menghemat ruang.": "No archive selected. Choose an HDD folder to save space.",
+        "Aktif tetap di drive FiveM. Nonaktif dipindahkan ke arsip; verifikasi selesai sebelum sumber dihapus.": "Active cache stays on the FiveM drive. Inactive caches move to the archive; sources are removed only after verification.",
+        "Pindahkan cache nonaktif?": "Move inactive caches?",
+        "Cache kota nonaktif akan dipindahkan ke folder arsip ini. Cache aktif tetap di drive FiveM. Proses dapat memakan waktu; jangan cabut drive atau membuka FiveM.": "Inactive city caches will move to this archive. Active cache stays on the FiveM drive. Transfers may take time; keep both drives connected and FiveM closed.",
+        "Menyiapkan arsip HDD...": "Preparing HDD archive...",
+        "Arsip HDD siap. Cache nonaktif sudah dipindahkan.": "HDD archive ready. Inactive caches have been moved.",
+        "Kembalikan cache ke drive FiveM?": "Return caches to the FiveM drive?",
+        "Semua cache nonaktif akan disalin kembali. Pastikan ruang drive FiveM cukup.": "All inactive caches will be copied back. Make sure the FiveM drive has enough free space.",
+        "Mengembalikan cache...": "Returning caches...",
+        "Semua cache tersimpan di drive FiveM.": "All caches are stored on the FiveM drive.",
+        "Memeriksa sumber": "Checking source",
+        "Menyalin cache": "Copying cache",
+        "Verifikasi SHA-256": "SHA-256 verification",
+        "Menyelesaikan transfer": "Finalizing transfer",
+        "Transfer tertunda. Sambungkan drive, sediakan ruang, lalu pilih Lanjutkan transfer di Peralatan.": "Transfer paused. Connect the drive, free space, then choose Resume transfer in Tools.",
+        "Tutup FiveM sebelum transfer. Arsip akan kembali ke drive FiveM saat diaktifkan.": "Close FiveM before transferring. Archived caches return to the FiveM drive when activated.",
+        "DRIVE AKTIF": "ACTIVE DRIVE",
+        "LOKAL": "LOCAL",
+        "ARSIP HDD": "HDD ARCHIVE",
+        "HDD OFFLINE": "HDD OFFLINE",
+        "BELUM ADA": "MISSING",
+        "Transfer / pemulihan selesai.": "Transfer / recovery completed.",
+        "Transfer belum selesai": "Transfer incomplete",
+        "Selesaikan transfer sebelum menjalankan FiveM.": "Complete the transfer before launching FiveM.",
+    }
+)

@@ -52,7 +52,7 @@ class Wallpaper:
         tint = "#101113" if self.theme == "dark" else "#f7f0e3"
         # Strong tint keeps the artwork soft and the interface readable.
         image = Image.blend(
-            image, Image.new("RGB", size, tint), 0.91 if self.theme == "dark" else 0.95
+            image, Image.new("RGB", size, tint), 0.96 if self.theme == "dark" else 0.98
         )
         self.rendered = image
         self.photo = ImageTk.PhotoImage(image, master=self.parent)

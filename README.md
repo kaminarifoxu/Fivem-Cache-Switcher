@@ -15,6 +15,10 @@ Cukup satu EXE; tidak perlu Python atau aset terpisah. Pengaturan disimpan otoma
 
 Pilih **Indonesia / English** di **Peralatan**. Gunakan **Daftar server → Hubungkan** untuk membuka koneksi FiveM. Daftar server disinkronkan otomatis dari GitHub. [Cara mengubah daftar](SERVER_LIST.md).
 
+## Penyimpanan SSD / HDD
+
+Buka **Peralatan → Pilih folder HDD** untuk menyimpan cache kota yang tidak aktif di HDD. Saat menekan **Aktifkan**, cache sebelumnya diarsipkan dan cache pilihan dikembalikan ke drive FiveM. Tutup FiveM selama transfer. Progres dan lokasi tiap kota ditampilkan di halaman Cache. [Panduan dan pemulihan transfer](docs/STORAGE.md).
+
 ## Tampilan
 
 UI lebih ringkas dengan ikon garis, tooltip saat kursor diarahkan ke tombol, serta tema terang/gelap. Ikon ubah nama, hapus, refresh, sinkronisasi, navigasi halaman, GitHub dan donasi menggantikan label berulang. Tindakan utama tetap berlabel. Wallpaper GANOMABI dibuat lebih lembut agar kontrol mudah dibaca. Ikon digambar oleh aplikasi dan ikut dibundel dalam EXE; tidak memakai aset atau font eksternal dari Flaticon.

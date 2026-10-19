@@ -2,6 +2,7 @@
 
 - `cache_switcher.py`: titik masuk aplikasi.
 - `ganov/core.py`: profil cache, penyimpanan konfigurasi, pemeriksaan versi, dan utilitas Windows.
+- `ganov/storage.py`: arsip lintas drive, verifikasi SHA-256, dan pemulihan transaksi.
 - `ganov/ui.py`: tampilan desktop, navigasi, dan interaksi tombol.
 - `ganov/auto_updater.py`: unduhan dan penggantian EXE.
 - `ganov/server_catalog.py` / `server_status.py`: daftar server dan jumlah pemain.
@@ -22,9 +23,10 @@ Build dan pemeriksaan UI di Windows:
 
 ```sh
 python -m scripts.smoke_ui
+python -m scripts.smoke_storage_ui
 python -m scripts.build_windows
 python -m scripts.smoke_packaged_ui
 python -m scripts.smoke_frozen_update
 ```
 
-Workflow GitHub menjalankan tes, pemeriksaan UI, dan build EXE. Perapihan struktur ini tetap memakai versi 2.7.6; aset release yang sudah ada tidak diganti.
+Workflow GitHub menjalankan tes, pemeriksaan UI, build EXE, pemeriksaan paket dan updater, lalu menerbitkan versi dengan catatan rilis yang sesuai.

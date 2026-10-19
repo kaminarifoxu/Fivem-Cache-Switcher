@@ -84,7 +84,7 @@ def main():
             super().__init__()
             self.withdraw()
             self.title(APP_NAME)
-            self.geometry("1180x820")
+            self.geometry("1220x880")
             self.minsize(1040, 760)
             self.configure(fg_color=BG)
             self.store = None
@@ -247,9 +247,9 @@ def main():
             ).pack(pady=(0, 3))
             text_label(
                 side,
-                text="Cache Switch",
+                text="CACHE & STORAGE",
                 text_color=MUTED,
-                font=(FONT, 11),
+                font=(FONT, 10),
             ).pack(pady=(0, 22))
             self.nav = {}
             for key, text in [
@@ -803,6 +803,7 @@ def main():
 
         def tooltip(self, widget, text):
             state = {"timer": None, "window": None}
+
             def hide(event=None):
                 if state["timer"] is not None:
                     widget.after_cancel(state["timer"])
@@ -810,6 +811,7 @@ def main():
                 if state["window"] is not None:
                     state["window"].destroy()
                     state["window"] = None
+
             def show():
                 state["timer"] = None
                 if not widget.winfo_exists():
@@ -819,52 +821,116 @@ def main():
                 tip.withdraw()
                 tip.overrideredirect(True)
                 tip.attributes("-topmost", True)
-                ctk.CTkLabel(tip, text=text, fg_color=CARD, text_color=WHITE,
-                             corner_radius=6, font=(FONT, 11), padx=10, pady=6).pack()
+                ctk.CTkLabel(
+                    tip,
+                    text=text,
+                    fg_color=CARD,
+                    text_color=WHITE,
+                    corner_radius=6,
+                    font=(FONT, 11),
+                    padx=10,
+                    pady=6,
+                ).pack()
                 tip.update_idletasks()
-                x = min(widget.winfo_rootx(), self.winfo_screenwidth() - tip.winfo_reqwidth() - 8)
-                y = min(widget.winfo_rooty() + widget.winfo_height() + 6,
-                        self.winfo_screenheight() - tip.winfo_reqheight() - 8)
+                x = min(
+                    widget.winfo_rootx(),
+                    self.winfo_screenwidth() - tip.winfo_reqwidth() - 8,
+                )
+                y = min(
+                    widget.winfo_rooty() + widget.winfo_height() + 6,
+                    self.winfo_screenheight() - tip.winfo_reqheight() - 8,
+                )
                 tip.geometry(f"+{max(0, x)}+{max(0, y)}")
                 tip.deiconify()
+
             def enter(event=None):
                 hide()
                 state["timer"] = widget.after(450, show)
+
             for event in ("<Enter>", "<FocusIn>"):
                 widget.bind(event, enter, add=True)
             for event in ("<Leave>", "<FocusOut>", "<ButtonPress-1>", "<Destroy>"):
                 widget.bind(event, hide, add=True)
             widget.tooltip_text = text
 
-        def btn(self, parent, text, command, primary=False, width=150, height=38,
-                icon=None, icon_only=False, tooltip=None):
+        def btn(
+            self,
+            parent,
+            text,
+            command,
+            primary=False,
+            width=150,
+            height=38,
+            icon=None,
+            icon_only=False,
+            tooltip=None,
+        ):
             icon_labels = {
-                "Profil kota": "grid", "Daftar server": "servers", "Peralatan": "tools",
-                "Jalankan FiveM": "play", "Pilih FiveM.exe": "folder",
-                "Buka folder data": "folder", "Pulihkan Switch": "recover",
-                "Cek update": "download", "Tambah kota": "plus", "+ Tambah kota": "plus",
-                "Sync server": "refresh", "Refresh": "refresh", "Nama": "edit", "Hapus": "trash",
-                "Sedang aktif": "check", "Aktifkan": "play", "Bersihkan": "trash",
-                "Terapkan DNS": "check", "Halaman": "external", "Hubungkan": "play",
-                "Sebelumnya": "left", "Berikutnya": "right", "GitHub": "external", "Donasi": "heart",
+                "Profil kota": "grid",
+                "Daftar server": "servers",
+                "Peralatan": "tools",
+                "Jalankan FiveM": "play",
+                "Pilih FiveM.exe": "folder",
+                "Buka folder data": "folder",
+                "Pulihkan Switch": "recover",
+                "Cek update": "download",
+                "Tambah kota": "plus",
+                "+ Tambah kota": "plus",
+                "Sync server": "refresh",
+                "Refresh": "refresh",
+                "Nama": "edit",
+                "Hapus": "trash",
+                "Sedang aktif": "check",
+                "Aktifkan": "play",
+                "Bersihkan": "trash",
+                "Terapkan DNS": "check",
+                "Halaman": "external",
+                "Hubungkan": "play",
+                "Sebelumnya": "left",
+                "Berikutnya": "right",
+                "GitHub": "external",
+                "Donasi": "heart",
             }
-            icon = icon or next((name for label, name in icon_labels.items() if text == tr(label)), None)
-            compact = ("Nama", "Hapus", "Sync server", "Refresh", "Halaman", "Sebelumnya", "Berikutnya", "GitHub", "Donasi")
+            icon = icon or next(
+                (name for label, name in icon_labels.items() if text == tr(label)), None
+            )
+            compact = (
+                "Nama",
+                "Hapus",
+                "Sync server",
+                "Refresh",
+                "Halaman",
+                "Sebelumnya",
+                "Berikutnya",
+                "GitHub",
+                "Donasi",
+            )
             icon_only = icon_only or any(text == tr(label) for label in compact)
             key = ("outline", icon, primary, icon == "trash")
             if icon and key not in self.images:
                 self.images[key] = make_icon(icon, primary, icon == "trash")
+
             def guarded():
                 if not self.busy:
                     command()
+
             b = ctk.CTkButton(
-                parent, text="" if icon_only else text, command=guarded,
+                parent,
+                text="" if icon_only else text,
+                command=guarded,
                 image=self.images[key] if icon else None,
-                width=36 if icon_only else width, height=height,
+                width=36 if icon_only else width,
+                height=height,
                 fg_color=RED if primary else app_theme.color("#f1e3cc"),
-                hover_color=app_theme.color("#cf3444") if primary else app_theme.color("#e6d0aa"),
+                hover_color=(
+                    app_theme.color("#cf3444")
+                    if primary
+                    else app_theme.color("#e6d0aa")
+                ),
                 text_color=app_theme.color("#ffffff") if primary else WHITE,
-                border_width=0, corner_radius=8, font=(FONT, 12),
+                border_width=0,
+                corner_radius=8,
+                font=(FONT, 12),
             )
             if icon_only or tooltip:
                 self.tooltip(b, tooltip or text)
@@ -918,62 +984,137 @@ def main():
 
         def build_cache(self, page):
             page.grid_columnconfigure(0, weight=1)
-            page.grid_rowconfigure(3, weight=1)
+            page.grid_rowconfigure(4, weight=1)
+            heading = ctk.CTkFrame(page, fg_color="transparent")
+            heading.grid(row=0, column=0, sticky="ew", pady=(0, 20))
+            self.add_wallpaper(heading)
             text_label(
-                page, text=tr("Profil kota"), font=(FONT, 24, "bold"), text_color=WHITE
-            ).grid(row=0, column=0, sticky="w", pady=(0, 18))
+                heading,
+                text=tr("Cache manager"),
+                font=(FONT, 28, "bold"),
+                text_color=WHITE,
+            ).pack(side="left")
+            text_label(
+                heading, text="SSD  /  HDD", font=(FONT, 11, "bold"), text_color=GOLD
+            ).pack(side="right", padx=10)
+            drives = ctk.CTkFrame(page, fg_color="transparent")
+            drives.grid(row=1, column=0, sticky="ew", pady=(0, 16))
+            drives.grid_columnconfigure((0, 1), weight=1, uniform="drives")
+            self.drive_widgets = {}
+            for column, (key, title, accent) in enumerate(
+                [
+                    (
+                        "active",
+                        tr("DRIVE FIVEM / CACHE AKTIF"),
+                        app_theme.color("#4f7067"),
+                    ),
+                    ("archive", tr("ARSIP CACHE / HDD PILIHAN"), GOLD),
+                ]
+            ):
+                card = ctk.CTkFrame(
+                    drives,
+                    fg_color=CARD,
+                    border_color=LINE,
+                    border_width=1,
+                    corner_radius=16,
+                )
+                card.grid(
+                    row=0,
+                    column=column,
+                    sticky="nsew",
+                    padx=(0, 7) if column == 0 else (7, 0),
+                )
+                card.grid_columnconfigure(0, weight=1)
+                text_label(
+                    card,
+                    text=title,
+                    font=(FONT, 10, "bold"),
+                    text_color=accent,
+                    anchor="w",
+                ).grid(row=0, column=0, sticky="ew", padx=18, pady=(15, 6))
+                path = text_label(
+                    card,
+                    text="",
+                    font=(FONT, 12),
+                    text_color=WHITE,
+                    anchor="w",
+                    wraplength=330,
+                    justify="left",
+                )
+                path.grid(row=1, column=0, sticky="ew", padx=18)
+                space = text_label(
+                    card, text="", font=(FONT, 10), text_color=MUTED, anchor="w"
+                )
+                space.grid(row=2, column=0, sticky="ew", padx=18, pady=(6, 5))
+                bar = ctk.CTkProgressBar(
+                    card, height=5, progress_color=accent, fg_color=LINE
+                )
+                bar.grid(row=3, column=0, sticky="ew", padx=18, pady=(0, 16))
+                bar.set(0)
+                self.drive_widgets[key] = (path, space, bar)
             summary = ctk.CTkFrame(
-                page, fg_color=CARD, border_color=LINE, border_width=1, corner_radius=14
+                page,
+                fg_color=app_theme.color("#fae6d1"),
+                border_color=app_theme.color("#b68b48"),
+                border_width=1,
+                corner_radius=16,
             )
-            summary.grid(row=1, column=0, sticky="ew", pady=(0, 16))
-            summary.grid_columnconfigure(1, weight=1)
-            ctk.CTkLabel(summary, text="", image=make_icon("grid"), width=32).grid(
-                row=0, column=0, padx=(16, 4), pady=10
-            )
-            text = ctk.CTkFrame(summary, fg_color="transparent")
-            text.grid(row=0, column=1, sticky="ew", padx=8, pady=14)
+            summary.grid(row=2, column=0, sticky="ew", pady=(0, 18))
+            summary.grid_columnconfigure(0, weight=1)
+            active_text = ctk.CTkFrame(summary, fg_color="transparent")
+            active_text.grid(row=0, column=0, sticky="ew", padx=20, pady=16)
             text_label(
-                text,
-                text=tr("CACHE AKTIF"),
+                active_text,
+                text=tr("SIAP DI DRIVE AKTIF"),
                 text_color=MUTED,
-                font=(FONT, 10, "bold"),
+                font=(FONT, 9, "bold"),
                 anchor="w",
             ).pack(fill="x")
             self.status = text_label(
-                text,
+                active_text,
                 text="",
-                font=(FONT, 19, "bold"),
+                font=(FONT, 22, "bold"),
                 text_color=GOLD,
                 anchor="w",
-                wraplength=365,
+                wraplength=400,
                 justify="left",
             )
-            self.status.pack(fill="x", pady=(3, 0))
+            self.status.pack(fill="x", pady=(4, 0))
             self.connection = text_label(
-                text, text="", text_color=MUTED, font=(FONT, 10), anchor="w"
+                active_text, text="", text_color=MUTED, font=(FONT, 10), anchor="w"
             )
-            self.connection.pack(fill="x")
+            self.connection.pack(fill="x", pady=(3, 0))
             stats = ctk.CTkFrame(summary, fg_color="transparent")
-            stats.grid(row=0, column=2, padx=20, pady=15)
+            stats.grid(row=0, column=1, padx=20, pady=16)
             self.metric_count = text_label(
-                stats, text=tr("0 PROFIL"), text_color=WHITE, font=(FONT, 13, "bold")
+                stats, text="", text_color=WHITE, font=(FONT, 14, "bold")
             )
             self.metric_count.pack(anchor="e")
             self.metric_size = text_label(
-                stats, text=tr("0 B tersimpan"), text_color=MUTED, font=(FONT, 10)
+                stats, text="", text_color=MUTED, font=(FONT, 10)
             )
             self.metric_size.pack(anchor="e", pady=(4, 0))
             row = ctk.CTkFrame(page, fg_color="transparent")
-            row.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+            row.grid(row=3, column=0, sticky="ew", pady=(0, 12))
             self.add_wallpaper(row)
             self.count = text_label(
-                row, text=tr("Daftar kota"), font=(FONT, 14, "bold"), text_color=WHITE
+                row, text=tr("Daftar kota"), font=(FONT, 15, "bold"), text_color=WHITE
             )
             self.count.pack(side="left")
-            self.btn(row, tr("Tambah kota"), self.add, primary=True, width=142).pack(
-                side="right"
+            self.btn(
+                row, tr("Tambah kota"), self.add, primary=True, width=138, height=40
+            ).pack(side="right")
+            self.btn(row, "Refresh", self.refresh, width=40, height=40).pack(
+                side="right", padx=8
             )
-            self.btn(row, "Refresh", self.refresh, width=90).pack(side="right", padx=8)
+            self.btn(
+                row,
+                tr("Penyimpanan"),
+                lambda: self.show_page("tools"),
+                width=132,
+                height=40,
+                icon="folder",
+            ).pack(side="right")
             self.list = ctk.CTkScrollableFrame(
                 page,
                 fg_color="transparent",
@@ -981,27 +1122,153 @@ def main():
                 scrollbar_button_color=app_theme.color("#c2a474"),
                 scrollbar_button_hover_color=RED,
             )
-            self.list.grid(row=3, column=0, sticky="nsew")
+            self.list.grid(row=4, column=0, sticky="nsew")
             self.list.grid_columnconfigure((0, 1, 2), weight=1, uniform="profiles")
             self.path_label = text_label(
-                page,
+                page, text="", anchor="w", text_color=MUTED, font=(FONT, 10)
+            )
+            self.transfer_panel = ctk.CTkFrame(
+                page, fg_color=CARD, corner_radius=12, border_width=1, border_color=LINE
+            )
+            self.transfer_panel.grid(row=5, column=0, sticky="ew", pady=(10, 0))
+            self.transfer_label = text_label(
+                self.transfer_panel,
                 text="",
+                text_color=GOLD,
+                font=(FONT, 11),
                 anchor="w",
-                text_color=MUTED,
-                font=(FONT, 10),
-                wraplength=780,
+                wraplength=650,
                 justify="left",
             )
-            
+            self.transfer_label.pack(fill="x", padx=15, pady=(12, 7))
+            self.transfer_progress = ctk.CTkProgressBar(
+                self.transfer_panel, height=6, progress_color=GOLD, fg_color=LINE
+            )
+            self.transfer_progress.pack(fill="x", padx=15, pady=(0, 12))
+            self.transfer_progress.set(0)
+            self.transfer_panel.grid_remove()
             text_label(
                 page,
                 text=tr(
-                    "Tutup FiveM sebelum mengganti cache."
+                    "Tutup FiveM sebelum transfer. Arsip akan kembali ke drive FiveM saat diaktifkan."
                 ),
-                anchor="w",
-                text_color=app_theme.color("#786757"),
+                text_color=MUTED,
                 font=(FONT, 10),
-            ).grid(row=5, column=0, sticky="ew", pady=(2, 0))
+                anchor="w",
+                wraplength=780,
+            ).grid(row=6, column=0, sticky="ew", pady=(10, 0))
+
+        def build_storage_settings(self, card):
+            self.archive_path_label = text_label(
+                card,
+                text="",
+                anchor="w",
+                text_color=WHITE,
+                font=(FONT, 12),
+                wraplength=700,
+                justify="left",
+            )
+            self.archive_path_label.grid(
+                row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 8)
+            )
+            text_label(
+                card,
+                text=tr(
+                    "Aktif tetap di drive FiveM. Nonaktif dipindahkan ke arsip; verifikasi selesai sebelum sumber dihapus."
+                ),
+                text_color=MUTED,
+                font=(FONT, 11),
+                anchor="w",
+                wraplength=700,
+                justify="left",
+            ).grid(row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
+            actions = ctk.CTkFrame(card, fg_color="transparent")
+            actions.grid(
+                row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 16)
+            )
+            self.btn(
+                actions,
+                tr("Pilih folder HDD"),
+                self.change_archive,
+                primary=True,
+                width=170,
+                height=40,
+                icon="folder",
+            ).pack(side="left")
+            self.btn(
+                actions,
+                tr("Semua di drive FiveM"),
+                self.disable_archive,
+                width=190,
+                height=40,
+                icon="recover",
+            ).pack(side="left", padx=8)
+            self.btn(
+                actions,
+                tr("Lanjutkan transfer"),
+                self.recover,
+                width=170,
+                height=40,
+                icon="refresh",
+            ).pack(side="right")
+
+        def change_archive(self):
+            try:
+                self.store.ensure_storage_idle()
+            except Exception as error:
+                messagebox.showinfo(tr("Penyimpanan"), str(error), parent=self)
+                return
+            folder = filedialog.askdirectory(
+                title=tr("Pilih folder arsip di HDD"),
+                initialdir=self.store.archive_root or os.path.expanduser("~"),
+                parent=self,
+            )
+            if not folder:
+                return
+            if not messagebox.askyesno(
+                tr("Pindahkan cache nonaktif?"),
+                tr(
+                    "Cache kota nonaktif akan dipindahkan ke folder arsip ini. Cache aktif tetap di drive FiveM. Proses dapat memakan waktu; jangan cabut drive atau membuka FiveM."
+                )
+                + "\n\n"
+                + folder,
+                parent=self,
+            ):
+                return
+            self.run(
+                tr("Menyiapkan arsip HDD..."),
+                lambda: (
+                    self.store.configure_archive(folder, self.transfer_update),
+                    tr("Arsip HDD siap. Cache nonaktif sudah dipindahkan."),
+                )[1],
+            )
+
+        def disable_archive(self):
+            if not self.store.archive_root:
+                return
+            if messagebox.askyesno(
+                tr("Kembalikan cache ke drive FiveM?"),
+                tr(
+                    "Semua cache nonaktif akan disalin kembali. Pastikan ruang drive FiveM cukup."
+                ),
+                parent=self,
+            ):
+                self.run(
+                    tr("Mengembalikan cache..."),
+                    lambda: (
+                        self.store.configure_archive("", self.transfer_update),
+                        tr("Semua cache tersimpan di drive FiveM."),
+                    )[1],
+                )
+
+        def transfer_update(self, phase, done, total, index, count):
+            now = time.monotonic()
+            if (not total or done < total) and now - getattr(
+                self, "_transfer_tick", 0
+            ) < 0.12:
+                return
+            self._transfer_tick = now
+            self.results.append(("transfer", (phase, done, total, index, count)))
 
         def build_tools(self, page):
             page.grid_columnconfigure((0, 1), weight=1, uniform="tools")
@@ -1047,7 +1314,8 @@ def main():
                 )
                 return panel
 
-            install = card(2, 0, tr("Instalasi"), 2)
+            self.build_storage_settings(card(2, 0, tr("Penyimpanan SSD / HDD"), 2))
+            install = card(3, 0, tr("Instalasi"), 2)
             self.exe_label = text_label(
                 install,
                 text="",
@@ -1073,11 +1341,17 @@ def main():
                 ]
             ):
                 self.btn(
-                    actions, text, command, primary=primary, width=140, height=34, icon_only=column > 0
+                    actions,
+                    text,
+                    command,
+                    primary=primary,
+                    width=140,
+                    height=34,
+                    icon_only=column > 0,
                 ).grid(
                     row=0, column=column, sticky="ew", padx=(0, 8) if column < 2 else 0
                 )
-            settings = card(3, 0, tr("Pengaturan aplikasi"), 2)
+            settings = card(4, 0, tr("Pengaturan aplikasi"), 2)
             text_label(
                 settings,
                 text=tr("BAHASA APLIKASI"),
@@ -1143,7 +1417,7 @@ def main():
             self.check_update_button.grid(
                 row=3, column=1, sticky="ew", padx=16, pady=(0, 14)
             )
-            temp = card(4, 0, tr("File sementara"))
+            temp = card(5, 0, tr("File sementara"))
             text_label(
                 temp,
                 text=tr("Bersihkan file sementara. File terkunci akan dilewati."),
@@ -1170,7 +1444,7 @@ def main():
             self.btn(temp, tr("Bersihkan"), self.clean, width=140, height=34).grid(
                 row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14)
             )
-            dns = card(4, 1, tr("Jaringan DNS"))
+            dns = card(5, 1, tr("Jaringan DNS"))
             self.adapter = ctk.CTkOptionMenu(
                 dns, values=[tr("Pilih adapter")], **options
             )
@@ -1190,7 +1464,50 @@ def main():
         def poll(self):
             while self.results:
                 kind, value = self.results.pop(0)
-                if kind == "server_status":
+                if kind == "transfer":
+                    phase, done, total, index, count = value
+                    names = {
+                        "scan": tr("Memeriksa sumber"),
+                        "copy": tr("Menyalin cache"),
+                        "verify": tr("Verifikasi SHA-256"),
+                        "cleanup": tr("Menyelesaikan transfer"),
+                    }
+                    detail = (
+                        f" · {format_size(done)} / {format_size(total)}"
+                        if total
+                        else ""
+                    )
+                    label = f"{index + 1}/{count} · {names[phase]}{detail}"
+                    self.transfer_panel.grid()
+                    self.transfer_label.configure(text=label)
+                    self.feedback.configure(text=label)
+                    self.transfer_progress.set(
+                        (index + (min(1, done / total) if total else 0)) / max(1, count)
+                    )
+                elif kind == "storage_stats":
+                    generation, stats = value
+                    if generation == self.size_generation and not self.busy:
+                        for key, usage in stats.items():
+                            _, label, bar = self.drive_widgets[key]
+                            if usage is None:
+                                label.configure(
+                                    text=(
+                                        tr("Tidak tersedia")
+                                        if key == "active"
+                                        else tr("HDD belum dipilih / offline")
+                                    )
+                                )
+                                bar.set(0)
+                            else:
+                                label.configure(
+                                    text=format_size(usage.free)
+                                    + " "
+                                    + tr("kosong")
+                                    + " / "
+                                    + format_size(usage.total)
+                                )
+                                bar.set(1 - usage.free / max(1, usage.total))
+                elif kind == "server_status":
                     self.status_syncing = False
                     self.server_statuses = value
                     self.render_servers()
@@ -1535,7 +1852,7 @@ def main():
             self.download_progress.pack(fill="x", padx=28, pady=4)
 
             def download():
-                if self.update_installing:
+                if self.update_installing or self.busy:
                     return
                 if os.name != "nt" or not getattr(sys, "frozen", False):
                     close()
@@ -1624,7 +1941,7 @@ def main():
             self.show_update_notice(error=error)
 
         def run(self, label, work):
-            if self.busy:
+            if self.busy or self.update_installing:
                 return
             self.busy = True
             self.size_generation += 1
@@ -1648,6 +1965,28 @@ def main():
                 w.destroy()
             self.buttons = [b for b in self.buttons if b.winfo_exists()]
             active = self.store.detect()
+            self.drive_widgets["active"][0].configure(
+                text=self.store.data_dir if self.store.exe else tr("Pilih FiveM.exe")
+            )
+            self.drive_widgets["archive"][0].configure(
+                text=self.store.archive_root or tr("Semua cache di drive FiveM")
+            )
+            self.archive_path_label.configure(
+                text=self.store.archive_root
+                or tr(
+                    "Belum ada folder arsip. Pilih folder di HDD untuk menghemat ruang."
+                )
+            )
+            if os.path.isfile(self.store.journal):
+                self.transfer_panel.grid()
+                if not self.busy:
+                    self.transfer_label.configure(
+                        text=tr(
+                            "Transfer tertunda. Sambungkan drive, sediakan ruang, lalu pilih Lanjutkan transfer di Peralatan."
+                        )
+                    )
+            elif not self.busy:
+                self.transfer_panel.grid_remove()
             labels = {
                 None: tr("Belum ada cache aktif"),
                 "external": tr("Cache lama belum terdaftar"),
@@ -1738,6 +2077,23 @@ def main():
                     font=(FONT, 16, "bold"),
                     text_color=GOLD,
                 ).pack(expand=True)
+                location = self.store.profile_location(pid)
+                location_names = {
+                    "active": tr("DRIVE AKTIF"),
+                    "local": tr("LOKAL"),
+                    "archive": (
+                        tr("ARSIP HDD")
+                        if self.store.storage_online()
+                        else tr("HDD OFFLINE")
+                    ),
+                    "missing": tr("BELUM ADA"),
+                }
+                ctk.CTkLabel(
+                    header,
+                    text=location_names[location],
+                    text_color=GOLD if current else MUTED,
+                    font=(FONT, 8, "bold"),
+                ).pack(side="right", padx=(6, 0))
                 info = ctk.CTkFrame(card, fg_color="transparent")
                 info.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
                 short = name if len(name) <= 48 else name[:45] + "…"
@@ -1821,6 +2177,22 @@ def main():
                     for p, path in paths.items()
                 }
                 self.results.append(("sizes", (generation, sizes)))
+                import shutil
+
+                stats = {}
+                for key, path in [
+                    ("active", self.store.data_dir),
+                    ("archive", self.store.archive_root),
+                ]:
+                    try:
+                        stats[key] = (
+                            shutil.disk_usage(path)
+                            if path and os.path.isdir(path)
+                            else None
+                        )
+                    except OSError:
+                        stats[key] = None
+                self.results.append(("storage_stats", (generation, stats)))
 
             threading.Thread(target=worker, daemon=True).start()
 
@@ -1968,7 +2340,10 @@ def main():
             name = self.store.profiles[pid]
             self.run(
                 tr("Mengaktifkan ") + name + "...",
-                lambda: (self.store.switch(pid), tr("Cache aktif: ") + name)[1],
+                lambda: (
+                    self.store.switch(pid, self.transfer_update),
+                    tr("Cache aktif: ") + name,
+                )[1],
             )
 
         def delete(self, pid):
@@ -2051,6 +2426,13 @@ def main():
                 self.change_path()
 
         def launch(self):
+            if self.busy or os.path.isfile(self.store.journal):
+                messagebox.showinfo(
+                    tr("Transfer belum selesai"),
+                    tr("Selesaikan transfer sebelum menjalankan FiveM."),
+                    parent=self,
+                )
+                return
             if self.store.exe and os.path.isfile(self.store.exe):
                 try:
                     os.startfile(self.store.exe)
@@ -2069,7 +2451,10 @@ def main():
                 return
             self.run(
                 tr("Memulihkan switch..."),
-                lambda: (self.store.recover(), tr("Cache sebelumnya dipulihkan."))[1],
+                lambda: (
+                    self.store.recover(self.transfer_update),
+                    tr("Transfer / pemulihan selesai."),
+                )[1],
             )
 
         def clean(self):
@@ -2178,4 +2563,3 @@ def main():
     if mutex:
         kernel.CloseHandle.argtypes = [ctypes.c_void_p]
         kernel.CloseHandle(mutex)
-

@@ -9,8 +9,9 @@ import subprocess
 import time
 import threading
 import ctypes
+from .storage import StorageMixin, normal
 
-VERSION = "2.8.0"
+VERSION = "2.9.0"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"
@@ -226,7 +227,7 @@ def no_fivem():
             )
 
 
-class CacheStore:
+class CacheStore(StorageMixin):
     def __init__(self, config_path, default_path=None):
         self.config_path = config_path
         self.path = default_path or os.path.join(
@@ -235,6 +236,7 @@ class CacheStore:
         self.exe = nearby_exe(self.path)
         self.profiles = {}
         self.active_id = None
+        self.archive_roots = {}
         self.load_warning = None
         source = config_path
         if not os.path.isfile(source):
@@ -259,6 +261,15 @@ class CacheStore:
                 if not isinstance(exe, str):
                     raise ValueError("Path FiveM.exe tidak valid")
                 self.exe = os.path.abspath(exe) if exe else nearby_exe(self.path)
+                archive_roots = data.get("archive_roots", {})
+                if not isinstance(archive_roots, dict) or any(
+                    not isinstance(k, str)
+                    or not isinstance(v, str)
+                    or not os.path.isabs(v)
+                    for k, v in archive_roots.items()
+                ):
+                    raise ValueError("Lokasi arsip tidak valid")
+                self.archive_roots = archive_roots
                 self.profiles = profiles
                 self.active_id = (
                     data.get("active_id") if data.get("active_id") in profiles else None
@@ -315,21 +326,25 @@ class CacheStore:
             raise
 
     def import_backups(self):
-        """List existing backups without renaming, deleting, or guessing the active city."""
-        if not os.path.isdir(self.data_dir):
-            return
-        for name in sorted(os.listdir(self.data_dir)):
-            if not name.startswith(PREFIX) or name.startswith(PREFIX + "temp_"):
+        """Discover caches in the installation and its owned archive, without moving files."""
+        roots = [self.data_dir]
+        if self.archive_root and self.storage_online():
+            roots.append(self.vault())
+        for root in roots:
+            if not os.path.isdir(root):
                 continue
-            pid = name[len(PREFIX) :]
-            path = os.path.join(self.data_dir, name)
-            if (
-                safe_id(pid)
-                and pid not in self.profiles
-                and os.path.isdir(path)
-                and not is_link(path)
-            ):
-                self.profiles[pid] = pid.replace("_", " ")
+            for name in sorted(os.listdir(root)):
+                if not name.startswith(PREFIX) or name.startswith(PREFIX + "temp_"):
+                    continue
+                pid = name[len(PREFIX) :]
+                path = os.path.join(root, name)
+                if (
+                    safe_id(pid)
+                    and pid not in self.profiles
+                    and os.path.isdir(path)
+                    and not is_link(path)
+                ):
+                    self.profiles[pid] = pid.replace("_", " ")
 
     @property
     def data_dir(self):
@@ -344,9 +359,10 @@ class CacheStore:
         return os.path.join(self.data_dir, "cache-switcher-remake-journal.json")
 
     def backup(self, pid):
-        if not safe_id(pid):
-            raise ValueError("ID profil tidak valid")
-        return os.path.join(self.data_dir, PREFIX + pid)
+        local = self.local_backup(pid)
+        if not self.archive_root or os.path.lexists(local):
+            return local
+        return self.cold_backup(pid)
 
     def validate(self):
         if (
@@ -372,6 +388,7 @@ class CacheStore:
             "fivem_path": self.path,
             "profiles": dict(self.profiles),
             "active_id": self.active_id,
+            "archive_roots": dict(self.archive_roots),
         }
 
     def save(self):
@@ -380,6 +397,8 @@ class CacheStore:
     def detect(self):
         if not os.path.isdir(self.active):
             return None
+        if self.archive_root and not self.storage_online():
+            return self.active_id if self.active_id in self.profiles else "conflict"
         missing = [p for p in self.profiles if not os.path.lexists(self.backup(p))]
         if self.active_id in missing and len(missing) == 1:
             return self.active_id
@@ -401,6 +420,8 @@ class CacheStore:
         self.validate()
         if os.path.isfile(self.journal):
             raise RuntimeError("Pulihkan switch sebelumnya terlebih dahulu.")
+        if self.archive_root:
+            self.vault()
         pid = self.next_id()
         os.mkdir(self.backup(pid))
         self.profiles[pid] = name
@@ -421,7 +442,9 @@ class CacheStore:
             self.profiles[pid] = old
             raise
 
-    def switch(self, target):
+    def switch(self, target, progress=None):
+        if self.archive_root:
+            return self.tiered_switch(target, progress)
         no_fivem()
         self.validate()
         if target not in self.profiles:
@@ -473,11 +496,13 @@ class CacheStore:
                 )
             raise
 
-    def recover(self):
+    def recover(self, progress=None):
         no_fivem()
         self.validate()
         with open(self.journal, encoding="utf-8") as f:
             record = json.load(f)
+        if record.get("kind") == "tiered-storage":
+            return self._resume_storage(record, progress)
         old, target, before = (
             record.get("old"),
             record.get("target"),
@@ -527,6 +552,8 @@ class CacheStore:
         self.validate()
         if os.path.isfile(self.journal):
             raise RuntimeError("Pulihkan switch sebelumnya terlebih dahulu.")
+        if self.archive_root:
+            self.vault()
         active = self.detect()
         if active == "conflict":
             raise RuntimeError(
@@ -535,7 +562,7 @@ class CacheStore:
         path = self.active if active == pid else self.backup(pid)
         check_tree(path)
         # Reversible deletion: move outside the live cache folders.
-        trash = os.path.join(self.data_dir, "cache-switcher-trash")
+        trash = os.path.join(os.path.dirname(path), "cache-switcher-trash")
         if is_link(trash):
             raise RuntimeError("Folder pemulihan berupa symlink/junction")
         os.makedirs(trash, exist_ok=True)
@@ -659,4 +686,3 @@ def set_dns(adapter, choice):
         creationflags=0x08000000,
         timeout=15,
     )
-
