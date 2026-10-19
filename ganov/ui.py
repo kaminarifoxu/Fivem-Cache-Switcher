@@ -33,6 +33,7 @@ def main():
     from .server_icons import fetch_icons
     from .wallpaper import Wallpaper, WallpaperText
     from .ui_icons import make_icon
+    from .dialogs import ask_transfer
 
     ui_settings_path = os.path.join(
         os.path.dirname(user_config_path()), "ui_settings.json"
@@ -1212,6 +1213,9 @@ def main():
                 icon="refresh",
             ).pack(side="right")
 
+        def ask_transfer(self, title, description, folder, returning=False):
+            return ask_transfer(self, title, description, folder, returning)
+
         def change_archive(self):
             try:
                 self.store.ensure_storage_idle()
@@ -1225,14 +1229,12 @@ def main():
             )
             if not folder:
                 return
-            if not messagebox.askyesno(
+            if not self.ask_transfer(
                 tr("Pindahkan cache nonaktif?"),
                 tr(
-                    "Cache kota nonaktif akan dipindahkan ke folder arsip ini. Cache aktif tetap di drive FiveM. Proses dapat memakan waktu; jangan cabut drive atau membuka FiveM."
-                )
-                + "\n\n"
-                + folder,
-                parent=self,
+                    "Hanya cache kota nonaktif yang dipindahkan. Cache aktif tetap di drive FiveM."
+                ),
+                folder,
             ):
                 return
             self.run(
@@ -1246,12 +1248,13 @@ def main():
         def disable_archive(self):
             if not self.store.archive_root:
                 return
-            if messagebox.askyesno(
+            if self.ask_transfer(
                 tr("Kembalikan cache ke drive FiveM?"),
                 tr(
                     "Semua cache nonaktif akan disalin kembali. Pastikan ruang drive FiveM cukup."
                 ),
-                parent=self,
+                self.store.data_dir,
+                returning=True,
             ):
                 self.run(
                     tr("Mengembalikan cache..."),
@@ -2563,3 +2566,4 @@ def main():
     if mutex:
         kernel.CloseHandle.argtypes = [ctypes.c_void_p]
         kernel.CloseHandle(mutex)
+

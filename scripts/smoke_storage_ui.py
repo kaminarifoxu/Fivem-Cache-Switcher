@@ -63,8 +63,14 @@ def loop(app):
             store.switch(a)
             app.store = store
             app.refresh()
-            with patch.object(filedialog, "askdirectory", return_value=str(hdd)), patch(
-                "tkinter.messagebox.askyesno", return_value=True
+            with patch.object(filedialog, "askdirectory", return_value=str(hdd)), patch.object(
+                app, "ask_transfer", return_value=False
+            ):
+                app.change_archive()
+                assert not store.archive_root, "Cancel changed the archive"
+                assert os.path.isdir(store.local_backup(b)), "Cancel moved a cache"
+            with patch.object(filedialog, "askdirectory", return_value=str(hdd)), patch.object(
+                app, "ask_transfer", return_value=True
             ), patch(
                 "tkinter.messagebox.showerror",
                 side_effect=lambda title, text, **kw: errors.append(text),
@@ -135,3 +141,4 @@ if errors or not completed:
 print(
     "PASS: real UI HDD migration, byte-preserving activation, return to local storage, launch guard, English and dark theme."
 )
+
