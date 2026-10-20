@@ -279,7 +279,1303 @@ def main():
                 tr("Donasi"),
                 lambda: self.open_link("https://saweria.co/itsaminarii"),
                 primary=True,
-  …13690 tokens truncated…_update_button.grid()
+                width=98,
+                height=34,
+            ).pack(side="right")
+            text_label(
+                side, text=COPYRIGHT, text_color=MUTED, font=(FONT, 9), wraplength=210
+            ).pack(side="bottom", pady=(8, 0))
+            text_label(
+                side,
+                text="GANOMABI  /  v" + VERSION,
+                text_color=GOLD,
+                font=(FONT, 10, "bold"),
+            ).pack(side="bottom", pady=(12, 0))
+            self.sidebar_chibi = WallpaperText(
+                side, side._wallpaper_layer, width=175, height=180
+            )
+            with Image.open(os.path.join(assets, "chibi.png")) as character:
+                self.sidebar_chibi.art_image = character.convert("RGBA")
+            self.sidebar_chibi.art_size = (160, 170)
+            self.sidebar_chibi.pack(side="bottom", pady=(10, 4))
+            body = ctk.CTkFrame(self, fg_color="transparent")
+            body.grid(row=0, column=1, sticky="nsew", padx=24, pady=(20, 14))
+            body.grid_columnconfigure(0, weight=1)
+            body.grid_rowconfigure(0, weight=1)
+            self.pages = {}
+            for name in ["cache", "servers", "tools"]:
+                page = (
+                    ctk.CTkScrollableFrame(
+                        body, fg_color="transparent", corner_radius=0
+                    )
+                    if name == "tools"
+                    else ctk.CTkFrame(body, fg_color="transparent", corner_radius=0)
+                )
+                page.grid(row=0, column=0, sticky="nsew")
+                self.pages[name] = page
+                add_wallpaper(page)
+                if name == "tools":
+                    add_wallpaper(page._parent_canvas)
+            self.build_cache(self.pages["cache"])
+            self.build_tools(self.pages["tools"])
+            self.build_servers(self.pages["servers"])
+            footer = ctk.CTkFrame(body, fg_color="transparent", height=28)
+            footer.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+            add_wallpaper(footer)
+            footer.grid_columnconfigure(0, weight=1)
+            self.feedback = text_label(
+                footer,
+                text=tr("Siap. Pilih FiveM.exe untuk menghubungkan instalasimu."),
+                anchor="w",
+                text_color=MUTED,
+                font=(FONT, 10),
+                wraplength=690,
+                justify="left",
+            )
+            self.feedback.grid(row=0, column=0, sticky="ew")
+            self.busy_bar = ctk.CTkProgressBar(
+                footer,
+                width=95,
+                height=4,
+                progress_color=GOLD,
+                fg_color=LINE,
+                mode="indeterminate",
+            )
+            self.busy_bar.grid(row=0, column=1, padx=(10, 0))
+            self.busy_bar.set(0)
+            self.busy_bar.grid_remove()
+            self.update_banner = ctk.CTkFrame(footer, fg_color=CARD, corner_radius=6)
+            self.update_banner.grid(
+                row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0)
+            )
+            self.update_banner.grid_columnconfigure(0, weight=1)
+            self.global_update_label = text_label(
+                self.update_banner,
+                text="",
+                text_color=GOLD,
+                font=(FONT, 11),
+                anchor="w",
+            )
+            self.global_update_label.grid(row=0, column=0, sticky="ew", padx=12, pady=8)
+            self.global_update_button = ctk.CTkButton(
+                self.update_banner,
+                text=tr("Update sekarang"),
+                command=self.open_update_panel,
+                width=150,
+                height=30,
+                fg_color=RED,
+                hover_color=app_theme.color("#cf3444"),
+                text_color=app_theme.color("#ffffff"),
+                font=(FONT, 11),
+            )
+            self.global_update_button.grid(row=0, column=1, padx=10, pady=8)
+            self.global_update_progress = ctk.CTkProgressBar(
+                self.update_banner, height=4, progress_color=RED, fg_color=LINE
+            )
+            self.global_update_progress.grid(
+                row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 10)
+            )
+            self.global_update_progress.set(0)
+            self.global_update_progress.grid_remove()
+            self.update_banner.grid_remove()
+            self.show_page("cache")
+            self.refresh()
+            if self.latest_release:
+                self.set_update_status(
+                    tr("Update tersedia: v") + self.latest_release["version"]
+                )
+            if self.store.exe and os.path.isfile(self.store.exe):
+                self.feedback.configure(
+                    text=tr("Siap. Pilih kota yang ingin kamu aktifkan.")
+                )
+            if not self.ui_started:
+                self.ui_started = True
+                self.after(100, self.poll)
+                self.after(250, self.load_adapters)
+                self.after(500, self.periodic_servers)
+                self.after(1000, self.periodic_status)
+
+        def change_language(self, choice):
+            if (
+                self.busy
+                or self.update_installing
+                or self.grab_current() is not None
+                or (
+                    self.update_dialog is not None and self.update_dialog.winfo_exists()
+                )
+            ):
+                self.language_selector.set(
+                    "English" if i18n.LANGUAGE == "en" else "Indonesia"
+                )
+                return
+            page = self.page
+            try:
+                i18n.set_language(
+                    "en" if choice == "English" else "id", ui_settings_path
+                )
+            except OSError as exc:
+                messagebox.showerror(tr("Konfigurasi"), str(exc), parent=self)
+                return
+            for widget in self.winfo_children():
+                widget.destroy()
+            self.buttons = []
+            self.build_main_ui()
+            self.show_page(page)
+
+        def change_theme(self, choice):
+            nonlocal BG, CARD, LINE, RED, GOLD, MUTED, WHITE
+            if (
+                self.busy
+                or self.update_installing
+                or self.grab_current() is not None
+                or (
+                    self.update_dialog is not None and self.update_dialog.winfo_exists()
+                )
+            ):
+                self.theme_selector.set(
+                    tr("Gelap") if app_theme.THEME == "dark" else tr("Terang")
+                )
+                return
+            try:
+                app_theme.save(
+                    "dark" if choice == tr("Gelap") else "light", theme_settings_path
+                )
+            except OSError as exc:
+                messagebox.showerror(tr("Konfigurasi"), str(exc), parent=self)
+                return
+            ctk.set_appearance_mode(app_theme.THEME)
+            BG, CARD, LINE = (
+                app_theme.color("#f7f0e3"),
+                app_theme.color("#fffaf1"),
+                app_theme.color("#ddc8a3"),
+            )
+            RED, GOLD, MUTED, WHITE = (
+                app_theme.color("#b82736"),
+                app_theme.color("#896019"),
+                app_theme.color("#786757"),
+                app_theme.color("#30251e"),
+            )
+            page = self.page
+            for widget in self.winfo_children():
+                widget.destroy()
+            self.buttons = []
+            self.configure(fg_color=BG)
+            self.build_main_ui()
+            self.show_page(page)
+
+        def build_servers(self, page):
+            page.grid_columnconfigure(0, weight=1)
+            page.grid_rowconfigure(3, weight=1)
+            text_label(
+                page, text=tr("List server"), font=(FONT, 24, "bold"), text_color=WHITE
+            ).grid(row=0, column=0, sticky="w")
+            text_label(
+                page,
+                text=tr("Pilih server dan hubungkan melalui FiveM."),
+                font=(FONT, 12),
+                text_color=MUTED,
+                wraplength=800,
+                justify="left",
+            ).grid(row=1, column=0, sticky="w", pady=(4, 16))
+            row = ctk.CTkFrame(page, fg_color="transparent")
+            row.grid(row=2, column=0, sticky="ew", pady=(0, 14))
+            self.add_wallpaper(row)
+            self.catalog_status = text_label(
+                row, text="", font=(FONT, 11), text_color=MUTED
+            )
+            self.catalog_status.pack(side="left")
+            self.btn(row, tr("Sync server"), self.sync_servers, width=130).pack(
+                side="right"
+            )
+            self.server_list = ctk.CTkFrame(page, fg_color="transparent")
+            for column in range(3):
+                self.server_list.grid_columnconfigure(
+                    column, weight=1, uniform="server"
+                )
+            for row_index in range(3):
+                self.server_list.grid_rowconfigure(
+                    row_index, weight=1, uniform="server"
+                )
+            self.server_list.grid(row=3, column=0, sticky="nsew")
+            pager = ctk.CTkFrame(page, fg_color="transparent")
+            pager.grid(row=4, column=0, sticky="ew", pady=(10, 0))
+            self.btn(
+                pager,
+                tr("Sebelumnya"),
+                lambda: self.change_server_page(-1),
+                width=110,
+                height=30,
+            ).pack(side="left")
+            self.server_page_label = text_label(
+                pager, text="", text_color=MUTED, font=(FONT, 11)
+            )
+            self.server_page_label.pack(side="left", expand=True)
+            self.btn(
+                pager,
+                tr("Berikutnya"),
+                lambda: self.change_server_page(1),
+                width=110,
+                height=30,
+            ).pack(side="right")
+            self.render_servers()
+
+        def change_server_page(self, step):
+            total = max(1, (len(self.catalog["servers"]) + 8) // 9)
+            self.server_page = min(total - 1, max(0, self.server_page + step))
+            self.render_servers()
+
+        def render_servers(self):
+            self.server_logo_images = []
+            for widget in self.server_list.winfo_children():
+                widget.destroy()
+            self.buttons = [button for button in self.buttons if button.winfo_exists()]
+            total = max(1, (len(self.catalog["servers"]) + 8) // 9)
+            self.server_page = min(self.server_page, total - 1)
+            self.server_page_label.configure(
+                text=f"{self.server_page + 1} / {total}  •  {len(self.catalog['servers'])} server"
+            )
+            servers = self.catalog["servers"][
+                self.server_page * 9 : (self.server_page + 1) * 9
+            ]
+            for index, server in enumerate(servers):
+                card = ctk.CTkFrame(
+                    self.server_list,
+                    fg_color=CARD,
+                    border_width=1,
+                    border_color=LINE,
+                    corner_radius=12,
+                )
+                card.grid(
+                    row=index // 3, column=index % 3, sticky="nsew", padx=5, pady=5
+                )
+                card.grid_columnconfigure(0, weight=1)
+                card.grid_rowconfigure(1, weight=1)
+                name = server["name"]
+                if len(name) > 29:
+                    name = name[:26] + "…"
+                ctk.CTkLabel(
+                    card,
+                    text=name,
+                    height=20,
+                    text_color=WHITE,
+                    font=(FONT, 12, "bold"),
+                    anchor="w",
+                ).grid(
+                    row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=(10, 0)
+                )
+                logo = self.server_icons.get(server["join_code"])
+                logo_image = (
+                    ctk.CTkImage(light_image=logo, dark_image=logo, size=(56, 56))
+                    if logo is not None
+                    else None
+                )
+                if logo_image is not None:
+                    self.server_logo_images.append(logo_image)
+                initials = "".join(
+                    word[0] for word in server["name"].split()[:2]
+                ).upper()
+                ctk.CTkLabel(
+                    card,
+                    text="" if logo_image else initials,
+                    image=logo_image,
+                    width=64,
+                    height=64,
+                    corner_radius=10,
+                    fg_color=BG,
+                    text_color=GOLD,
+                    font=(FONT, 20, "bold"),
+                ).grid(row=1, column=1, sticky="ne", padx=(0, 10), pady=3)
+                status = self.server_statuses.get(server["join_code"], {})
+                description = status.get("description") or server.get(
+                    "description", {}
+                ).get(i18n.LANGUAGE, "")
+                description = description.replace("\n", " ")
+                if len(description) > 55:
+                    description = description[:52] + "…"
+                ctk.CTkLabel(
+                    card,
+                    text=description,
+                    height=26,
+                    text_color=MUTED,
+                    font=(FONT, 10),
+                    wraplength=155,
+                    justify="left",
+                    anchor="w",
+                ).grid(row=1, column=0, sticky="nw", padx=12, pady=3)
+                players = (
+                    f"{status['clients']} / {status['maximum']} " + tr("pemain")
+                    if status.get("available")
+                    else tr("Belum tersedia")
+                )
+                ctk.CTkLabel(
+                    card,
+                    text=players,
+                    height=18,
+                    text_color=GOLD,
+                    font=(FONT, 11, "bold"),
+                    anchor="w",
+                ).grid(row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=3)
+                actions = ctk.CTkFrame(card, fg_color="transparent")
+                actions.grid(
+                    row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=(3, 10)
+                )
+                actions.grid_columnconfigure(1, weight=1)
+                self.btn(
+                    actions,
+                    tr("Halaman"),
+                    lambda code=server["join_code"]: self.open_link(page_url(code)),
+                    width=75,
+                    height=28,
+                ).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+                self.btn(
+                    actions,
+                    tr("Hubungkan"),
+                    lambda code=server["join_code"]: self.connect_server(code),
+                    primary=True,
+                    width=85,
+                    height=28,
+                ).grid(row=0, column=1, sticky="ew")
+            if not self.catalog["servers"]:
+                ctk.CTkLabel(
+                    self.server_list,
+                    text=tr("Tidak ada server dalam daftar."),
+                    text_color=MUTED,
+                ).grid(row=0, column=0, columnspan=3, pady=30)
+
+        def periodic_status(self):
+            if self.closed:
+                return
+            if self.page == "servers" or not self.server_statuses:
+                self.refresh_server_status()
+            self.after(60000, self.periodic_status)
+
+        def refresh_server_status(self):
+            if self.closed or self.status_syncing:
+                return
+            self.status_syncing = True
+            codes = [server["join_code"] for server in self.catalog["servers"]]
+
+            def worker():
+                statuses = fetch_statuses(codes)
+                self.results.append(("server_status", statuses))
+                cache = os.path.join(
+                    os.path.dirname(user_config_path()), "server_icons"
+                )
+                self.results.append(("server_icons", fetch_icons(statuses, cache)))
+
+            threading.Thread(target=worker, daemon=True).start()
+
+        def periodic_servers(self):
+            if self.closed:
+                return
+            self.sync_servers()
+            self.after(300000, self.periodic_servers)
+
+        def sync_servers(self):
+            if self.closed or self.catalog_syncing:
+                return
+            self.catalog_syncing = True
+            self.catalog_status.configure(text=tr("Sinkronisasi dari GitHub..."))
+
+            def worker():
+                try:
+                    self.results.append(("catalog", sync_catalog(self.catalog_cache)))
+                except Exception as exc:
+                    self.results.append(("catalog_error", str(exc)))
+
+            threading.Thread(target=worker, daemon=True).start()
+
+        def connect_server(self, code):
+            try:
+                uri = connect_uri(code)
+                if os.name != "nt":
+                    raise OSError("FiveM connection requires Windows")
+                os.startfile(uri)
+                self.feedback.configure(text=tr("Menghubungkan ke ") + code)
+            except OSError:
+                messagebox.showerror(
+                    tr("Koneksi server"),
+                    tr(
+                        "FiveM belum terdaftar sebagai pembuka tautan. Jalankan FiveM sekali, lalu coba lagi."
+                    ),
+                    parent=self,
+                )
+
+        def art(self, parent, name, background):
+            scale = ctk.ScalingTracker.get_widget_scaling(self)
+            suffix = (
+                "1"
+                if scale <= 1.1
+                else "125" if scale <= 1.35 else "150" if scale <= 1.7 else "2"
+            )
+            key = name + "_" + suffix
+            if key not in self.images:
+                self.images[key] = PhotoImage(
+                    master=self, file=os.path.join(assets, "ui", key + ".png")
+                )
+            return Label(
+                parent,
+                image=self.images[key],
+                bg=background,
+                bd=0,
+                highlightthickness=0,
+            )
+
+        def open_link(self, url):
+            import webbrowser
+
+            try:
+                if not webbrowser.open(url):
+                    raise RuntimeError(tr("Browser tidak dapat dibuka.\n") + url)
+            except Exception as exc:
+                messagebox.showerror(tr("Buka tautan"), str(exc), parent=self)
+
+        def animated_art(self, parent, name, background, page):
+            import math
+
+            label = self.art(parent, name, background)
+            scale = ctk.ScalingTracker.get_widget_scaling(self)
+            suffix = (
+                "1"
+                if scale <= 1.1
+                else "125" if scale <= 1.35 else "150" if scale <= 1.7 else "2"
+            )
+            picture = self.images[name + "_" + suffix]
+            label.destroy()
+            width, height = (picture.width(), picture.height())
+            canvas = Canvas(
+                parent,
+                width=width,
+                height=height,
+                bg=background,
+                bd=0,
+                highlightthickness=0,
+            )
+            motes = [
+                canvas.create_oval(
+                    0, 0, 2, 2, fill=app_theme.color("#98733e"), outline=""
+                )
+                for _ in range(10)
+            ]
+            artwork = canvas.create_image(width / 2, height / 2, image=picture)
+            animate = True
+            if os.name == "nt":
+                enabled = ctypes.c_int(1)
+                if ctypes.windll.user32.SystemParametersInfoW(
+                    4162, 0, ctypes.byref(enabled), 0
+                ):
+                    animate = bool(enabled.value)
+            start = time.monotonic()
+
+            def tick():
+                if self.closed or not canvas.winfo_exists():
+                    return
+                visible = self.page == page and self.state() != "iconic"
+                if animate and visible:
+                    elapsed = time.monotonic() - start
+                    canvas.coords(
+                        artwork,
+                        width / 2,
+                        height / 2 + math.sin(elapsed * 1.3) * 2 * scale,
+                    )
+                    for index, mote in enumerate(motes):
+                        x = (index * 47 + math.sin(elapsed * 0.5 + index) * 10) % max(
+                            1, width - 12
+                        ) + 6
+                        y = (
+                            height
+                            - (elapsed * 12 * scale + index * 29) % max(1, height - 12)
+                            - 6
+                        )
+                        radius = (1 + index % 2) * scale
+                        canvas.coords(
+                            mote, x - radius, y - radius, x + radius, y + radius
+                        )
+                    self.after(50, tick)
+                elif animate:
+                    self.after(250, tick)
+                else:
+                    for mote in motes:
+                        canvas.itemconfigure(mote, state="hidden")
+
+            self.after(50, tick)
+            return canvas
+
+        def tooltip(self, widget, text):
+            state = {"timer": None, "window": None}
+
+            def hide(event=None):
+                if state["timer"] is not None:
+                    widget.after_cancel(state["timer"])
+                    state["timer"] = None
+                if state["window"] is not None:
+                    state["window"].destroy()
+                    state["window"] = None
+
+            def show():
+                state["timer"] = None
+                if not widget.winfo_exists():
+                    return
+                tip = ctk.CTkToplevel(self)
+                state["window"] = tip
+                tip.withdraw()
+                tip.overrideredirect(True)
+                tip.attributes("-topmost", True)
+                ctk.CTkLabel(
+                    tip,
+                    text=text,
+                    fg_color=CARD,
+                    text_color=WHITE,
+                    corner_radius=6,
+                    font=(FONT, 11),
+                    padx=10,
+                    pady=6,
+                ).pack()
+                tip.update_idletasks()
+                x = min(
+                    widget.winfo_rootx(),
+                    self.winfo_screenwidth() - tip.winfo_reqwidth() - 8,
+                )
+                y = min(
+                    widget.winfo_rooty() + widget.winfo_height() + 6,
+                    self.winfo_screenheight() - tip.winfo_reqheight() - 8,
+                )
+                tip.geometry(f"+{max(0, x)}+{max(0, y)}")
+                tip.deiconify()
+
+            def enter(event=None):
+                hide()
+                state["timer"] = widget.after(450, show)
+
+            for event in ("<Enter>", "<FocusIn>"):
+                widget.bind(event, enter, add=True)
+            for event in ("<Leave>", "<FocusOut>", "<ButtonPress-1>", "<Destroy>"):
+                widget.bind(event, hide, add=True)
+            widget.tooltip_text = text
+
+        def btn(
+            self,
+            parent,
+            text,
+            command,
+            primary=False,
+            width=150,
+            height=38,
+            icon=None,
+            icon_only=False,
+            tooltip=None,
+        ):
+            icon_labels = {
+                "Profil kota": "grid",
+                "Daftar server": "servers",
+                "Peralatan": "tools",
+                "Jalankan FiveM": "play",
+                "Pilih FiveM.exe": "folder",
+                "Buka folder data": "folder",
+                "Pulihkan Switch": "recover",
+                "Cek update": "download",
+                "Tambah kota": "plus",
+                "+ Tambah kota": "plus",
+                "Sync server": "refresh",
+                "Refresh": "refresh",
+                "Nama": "edit",
+                "Hapus": "trash",
+                "Sedang aktif": "check",
+                "Aktifkan": "play",
+                "Bersihkan": "trash",
+                "Terapkan DNS": "check",
+                "Halaman": "external",
+                "Hubungkan": "play",
+                "Sebelumnya": "left",
+                "Berikutnya": "right",
+                "GitHub": "external",
+                "Donasi": "heart",
+            }
+            icon = icon or next(
+                (name for label, name in icon_labels.items() if text == tr(label)), None
+            )
+            compact = (
+                "Nama",
+                "Hapus",
+                "Sync server",
+                "Refresh",
+                "Halaman",
+                "Sebelumnya",
+                "Berikutnya",
+                "GitHub",
+                "Donasi",
+            )
+            icon_only = icon_only or any(text == tr(label) for label in compact)
+            key = ("outline", icon, primary, icon == "trash")
+            if icon and key not in self.images:
+                self.images[key] = make_icon(icon, primary, icon == "trash")
+
+            def guarded():
+                if not self.busy:
+                    command()
+
+            b = ctk.CTkButton(
+                parent,
+                text="" if icon_only else text,
+                command=guarded,
+                image=self.images[key] if icon else None,
+                width=36 if icon_only else width,
+                height=height,
+                fg_color=RED if primary else app_theme.color("#f1e3cc"),
+                hover_color=(
+                    app_theme.color("#cf3444")
+                    if primary
+                    else app_theme.color("#e6d0aa")
+                ),
+                text_color=app_theme.color("#ffffff") if primary else WHITE,
+                border_width=0,
+                corner_radius=8,
+                font=(FONT, 12),
+            )
+            if icon_only or tooltip:
+                self.tooltip(b, tooltip or text)
+            self.buttons.append(b)
+            return b
+
+        def show_page(self, name):
+            if self.busy:
+                return
+            changed = self.page != name
+            self.page = name
+            self.page_animation_generation += 1
+            generation = self.page_animation_generation
+            if self.page_animation is not None:
+                self.after_cancel(self.page_animation)
+                self.page_animation = None
+            for key, page in self.pages.items():
+                if key == name:
+                    page.grid(padx=0)
+                else:
+                    page.grid_remove()
+            for key, button in self.nav.items():
+                button.configure(
+                    fg_color=(
+                        app_theme.color("#ead3b2") if key == name else "transparent"
+                    ),
+                    text_color=GOLD if key == name else WHITE,
+                )
+            if not changed or not self.animations_enabled:
+                return
+            page = self.pages[name]
+            started = time.monotonic()
+
+            def animate():
+                if (
+                    self.closed
+                    or generation != self.page_animation_generation
+                    or not page.winfo_exists()
+                ):
+                    return
+                progress = min(1.0, (time.monotonic() - started) / 0.18)
+                offset = round(14 * (1 - progress) ** 3)
+                page.grid_configure(padx=(offset, 0))
+                if progress < 1:
+                    self.page_animation = self.after(16, animate)
+                else:
+                    page.grid_configure(padx=0)
+                    self.page_animation = None
+
+            animate()
+
+        def build_cache(self, page):
+            page.grid_columnconfigure(0, weight=1)
+            page.grid_rowconfigure(4, weight=1)
+            heading = ctk.CTkFrame(page, fg_color="transparent")
+            heading.grid(row=0, column=0, sticky="ew", pady=(0, 20))
+            self.add_wallpaper(heading)
+            text_label(
+                heading,
+                text=tr("Cache manager"),
+                font=(FONT, 28, "bold"),
+                text_color=WHITE,
+            ).pack(side="left")
+            text_label(
+                heading, text="SSD  /  HDD", font=(FONT, 11, "bold"), text_color=GOLD
+            ).pack(side="right", padx=10)
+            drives = ctk.CTkFrame(page, fg_color="transparent")
+            drives.grid(row=1, column=0, sticky="ew", pady=(0, 16))
+            drives.grid_columnconfigure((0, 1), weight=1, uniform="drives")
+            self.drive_widgets = {}
+            for column, (key, title, accent) in enumerate(
+                [
+                    (
+                        "active",
+                        tr("DRIVE FIVEM / CACHE AKTIF"),
+                        app_theme.color("#4f7067"),
+                    ),
+                    ("archive", tr("ARSIP CACHE / HDD PILIHAN"), GOLD),
+                ]
+            ):
+                card = ctk.CTkFrame(
+                    drives,
+                    fg_color=CARD,
+                    border_color=LINE,
+                    border_width=1,
+                    corner_radius=16,
+                )
+                card.grid(
+                    row=0,
+                    column=column,
+                    sticky="nsew",
+                    padx=(0, 7) if column == 0 else (7, 0),
+                )
+                card.grid_columnconfigure(0, weight=1)
+                text_label(
+                    card,
+                    text=title,
+                    font=(FONT, 10, "bold"),
+                    text_color=accent,
+                    anchor="w",
+                ).grid(row=0, column=0, sticky="ew", padx=18, pady=(15, 6))
+                path = text_label(
+                    card,
+                    text="",
+                    font=(FONT, 12),
+                    text_color=WHITE,
+                    anchor="w",
+                    wraplength=330,
+                    justify="left",
+                )
+                path.grid(row=1, column=0, sticky="ew", padx=18)
+                space = text_label(
+                    card, text="", font=(FONT, 10), text_color=MUTED, anchor="w"
+                )
+                space.grid(row=2, column=0, sticky="ew", padx=18, pady=(6, 5))
+                bar = ctk.CTkProgressBar(
+                    card, height=5, progress_color=accent, fg_color=LINE
+                )
+                bar.grid(row=3, column=0, sticky="ew", padx=18, pady=(0, 16))
+                bar.set(0)
+                self.drive_widgets[key] = (path, space, bar)
+            summary = ctk.CTkFrame(
+                page,
+                fg_color=app_theme.color("#fae6d1"),
+                border_color=app_theme.color("#b68b48"),
+                border_width=1,
+                corner_radius=16,
+            )
+            summary.grid(row=2, column=0, sticky="ew", pady=(0, 18))
+            summary.grid_columnconfigure(0, weight=1)
+            active_text = ctk.CTkFrame(summary, fg_color="transparent")
+            active_text.grid(row=0, column=0, sticky="ew", padx=20, pady=16)
+            text_label(
+                active_text,
+                text=tr("SIAP DI DRIVE AKTIF"),
+                text_color=MUTED,
+                font=(FONT, 9, "bold"),
+                anchor="w",
+            ).pack(fill="x")
+            self.status = text_label(
+                active_text,
+                text="",
+                font=(FONT, 22, "bold"),
+                text_color=GOLD,
+                anchor="w",
+                wraplength=400,
+                justify="left",
+            )
+            self.status.pack(fill="x", pady=(4, 0))
+            self.connection = text_label(
+                active_text, text="", text_color=MUTED, font=(FONT, 10), anchor="w"
+            )
+            self.connection.pack(fill="x", pady=(3, 0))
+            stats = ctk.CTkFrame(summary, fg_color="transparent")
+            stats.grid(row=0, column=1, padx=20, pady=16)
+            self.metric_count = text_label(
+                stats, text="", text_color=WHITE, font=(FONT, 14, "bold")
+            )
+            self.metric_count.pack(anchor="e")
+            self.metric_size = text_label(
+                stats, text="", text_color=MUTED, font=(FONT, 10)
+            )
+            self.metric_size.pack(anchor="e", pady=(4, 0))
+            row = ctk.CTkFrame(page, fg_color="transparent")
+            row.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+            self.add_wallpaper(row)
+            self.count = text_label(
+                row, text=tr("Daftar kota"), font=(FONT, 15, "bold"), text_color=WHITE
+            )
+            self.count.pack(side="left")
+            self.btn(
+                row, tr("Tambah kota"), self.add, primary=True, width=138, height=40
+            ).pack(side="right")
+            self.btn(row, "Refresh", self.refresh, width=40, height=40).pack(
+                side="right", padx=8
+            )
+            self.btn(
+                row,
+                tr("Penyimpanan"),
+                lambda: self.show_page("tools"),
+                width=132,
+                height=40,
+                icon="folder",
+            ).pack(side="right")
+            self.list = ctk.CTkScrollableFrame(
+                page,
+                fg_color="transparent",
+                corner_radius=0,
+                scrollbar_button_color=app_theme.color("#c2a474"),
+                scrollbar_button_hover_color=RED,
+            )
+            self.list.grid(row=4, column=0, sticky="nsew")
+            self.list.grid_columnconfigure((0, 1, 2), weight=1, uniform="profiles")
+            self.path_label = text_label(
+                page, text="", anchor="w", text_color=MUTED, font=(FONT, 10)
+            )
+            self.transfer_panel = ctk.CTkFrame(
+                page, fg_color=CARD, corner_radius=12, border_width=1, border_color=LINE
+            )
+            self.transfer_panel.grid(row=5, column=0, sticky="ew", pady=(10, 0))
+            self.transfer_label = text_label(
+                self.transfer_panel,
+                text="",
+                text_color=GOLD,
+                font=(FONT, 11),
+                anchor="w",
+                wraplength=650,
+                justify="left",
+            )
+            self.transfer_label.pack(fill="x", padx=15, pady=(12, 7))
+            self.transfer_progress = ctk.CTkProgressBar(
+                self.transfer_panel, height=6, progress_color=GOLD, fg_color=LINE
+            )
+            self.transfer_progress.pack(fill="x", padx=15, pady=(0, 12))
+            self.transfer_progress.set(0)
+            self.transfer_panel.grid_remove()
+            text_label(
+                page,
+                text=tr(
+                    "Tutup FiveM sebelum transfer. Arsip akan kembali ke drive FiveM saat diaktifkan."
+                ),
+                text_color=MUTED,
+                font=(FONT, 10),
+                anchor="w",
+                wraplength=780,
+            ).grid(row=6, column=0, sticky="ew", pady=(10, 0))
+
+        def build_storage_settings(self, card):
+            self.archive_path_label = text_label(
+                card,
+                text="",
+                anchor="w",
+                text_color=WHITE,
+                font=(FONT, 12),
+                wraplength=700,
+                justify="left",
+            )
+            self.archive_path_label.grid(
+                row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 8)
+            )
+            text_label(
+                card,
+                text=tr(
+                    "Aktif tetap di drive FiveM. Nonaktif dipindahkan ke arsip; verifikasi selesai sebelum sumber dihapus."
+                ),
+                text_color=MUTED,
+                font=(FONT, 11),
+                anchor="w",
+                wraplength=700,
+                justify="left",
+            ).grid(row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
+            actions = ctk.CTkFrame(card, fg_color="transparent")
+            actions.grid(
+                row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 16)
+            )
+            self.btn(
+                actions,
+                tr("Pilih folder HDD"),
+                self.change_archive,
+                primary=True,
+                width=170,
+                height=40,
+                icon="folder",
+            ).pack(side="left")
+            self.btn(
+                actions,
+                tr("Semua di drive FiveM"),
+                self.disable_archive,
+                width=190,
+                height=40,
+                icon="recover",
+            ).pack(side="left", padx=8)
+            self.btn(
+                actions,
+                tr("Lanjutkan transfer"),
+                self.recover,
+                width=170,
+                height=40,
+                icon="refresh",
+            ).pack(side="right")
+
+        def change_archive(self):
+            try:
+                self.store.ensure_storage_idle()
+            except Exception as error:
+                messagebox.showinfo(tr("Penyimpanan"), str(error), parent=self)
+                return
+            folder = filedialog.askdirectory(
+                title=tr("Pilih folder arsip di HDD"),
+                initialdir=self.store.archive_root or os.path.expanduser("~"),
+                parent=self,
+            )
+            if not folder:
+                return
+            if not messagebox.askyesno(
+                tr("Pindahkan cache nonaktif?"),
+                tr(
+                    "Cache kota nonaktif akan dipindahkan ke folder arsip ini. Cache aktif tetap di drive FiveM. Proses dapat memakan waktu; jangan cabut drive atau membuka FiveM."
+                )
+                + "\n\n"
+                + folder,
+                parent=self,
+            ):
+                return
+            self.run(
+                tr("Menyiapkan arsip HDD..."),
+                lambda: (
+                    self.store.configure_archive(folder, self.transfer_update),
+                    tr("Arsip HDD siap. Cache nonaktif sudah dipindahkan."),
+                )[1],
+            )
+
+        def disable_archive(self):
+            if not self.store.archive_root:
+                return
+            if messagebox.askyesno(
+                tr("Kembalikan cache ke drive FiveM?"),
+                tr(
+                    "Semua cache nonaktif akan disalin kembali. Pastikan ruang drive FiveM cukup."
+                ),
+                parent=self,
+            ):
+                self.run(
+                    tr("Mengembalikan cache..."),
+                    lambda: (
+                        self.store.configure_archive("", self.transfer_update),
+                        tr("Semua cache tersimpan di drive FiveM."),
+                    )[1],
+                )
+
+        def transfer_update(self, phase, done, total, index, count):
+            now = time.monotonic()
+            if (not total or done < total) and now - getattr(
+                self, "_transfer_tick", 0
+            ) < 0.12:
+                return
+            self._transfer_tick = now
+            key = (phase, index, count)
+            previous = getattr(self, "_transfer_rate", None)
+            if previous is None or previous[0] != key or done < previous[2]:
+                self._transfer_rate = (key, now, done)
+            _, started, initial = self._transfer_rate
+            elapsed = now - started
+            rate = (done - initial) / elapsed if elapsed >= 0.5 else None
+            self.results.append(("transfer", (phase, done, total, index, count, rate)))
+
+        def build_tools(self, page):
+            page.grid_columnconfigure((0, 1), weight=1, uniform="tools")
+            text_label(
+                page, text=tr("Peralatan"), font=(FONT, 24, "bold"), text_color=WHITE
+            ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+            text_label(
+                page,
+                text=tr("Kontrol instalasi, file sementara, dan jaringanmu."),
+                text_color=MUTED,
+                font=(FONT, 12),
+            ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(0, 16))
+
+            def card(row, column, title, span=1):
+                panel = ctk.CTkFrame(
+                    page,
+                    fg_color=CARD,
+                    border_width=1,
+                    border_color=LINE,
+                    corner_radius=10,
+                )
+                panel.grid(
+                    row=row,
+                    column=column,
+                    columnspan=span,
+                    sticky="nsew",
+                    padx=(
+                        (0, 6)
+                        if span == 1 and column == 0
+                        else (6, 0) if span == 1 else 0
+                    ),
+                    pady=(0, 12),
+                )
+                panel.grid_columnconfigure((0, 1), weight=1)
+                text_label(
+                    panel,
+                    text=title,
+                    font=(FONT, 13, "bold"),
+                    text_color=GOLD,
+                    anchor="w",
+                ).grid(
+                    row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(12, 8)
+                )
+                return panel
+
+            self.build_storage_settings(card(2, 0, tr("Penyimpanan SSD / HDD"), 2))
+            install = card(3, 0, tr("Instalasi"), 2)
+            self.exe_label = text_label(
+                install,
+                text="",
+                text_color=MUTED,
+                font=(FONT, 10),
+                wraplength=700,
+                justify="left",
+                anchor="w",
+            )
+            self.exe_label.grid(
+                row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 8)
+            )
+            actions = ctk.CTkFrame(install, fg_color="transparent")
+            actions.grid(
+                row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14)
+            )
+            actions.grid_columnconfigure(0, weight=1)
+            for column, (text, command, primary) in enumerate(
+                [
+                    (tr("Pilih FiveM.exe"), self.change_path, True),
+                    (tr("Buka folder data"), self.open_folder, False),
+                    (tr("Pulihkan Switch"), self.recover, False),
+                ]
+            ):
+                self.btn(
+                    actions,
+                    text,
+                    command,
+                    primary=primary,
+                    width=140,
+                    height=34,
+                    icon_only=column > 0,
+                ).grid(
+                    row=0, column=column, sticky="ew", padx=(0, 8) if column < 2 else 0
+                )
+            settings = card(4, 0, tr("Pengaturan aplikasi"), 2)
+            text_label(
+                settings,
+                text=tr("BAHASA APLIKASI"),
+                text_color=MUTED,
+                font=(FONT, 10),
+                anchor="w",
+            ).grid(row=1, column=0, sticky="w", padx=16)
+            text_label(
+                settings,
+                text=tr("TEMA APLIKASI"),
+                text_color=MUTED,
+                font=(FONT, 10),
+                anchor="w",
+            ).grid(row=1, column=1, sticky="w", padx=16)
+            common = dict(
+                selected_color=app_theme.color("#ead0b0"),
+                selected_hover_color=app_theme.color("#e3c292"),
+                unselected_color=app_theme.color("#fffaf1"),
+                text_color=WHITE,
+                height=32,
+            )
+            self.language_selector = ctk.CTkSegmentedButton(
+                settings,
+                values=["Indonesia", "English"],
+                command=self.change_language,
+                **common,
+            )
+            self.language_selector.set(
+                "English" if i18n.LANGUAGE == "en" else "Indonesia"
+            )
+            self.language_selector.grid(
+                row=2, column=0, sticky="ew", padx=16, pady=(2, 12)
+            )
+            self.theme_selector = ctk.CTkSegmentedButton(
+                settings,
+                values=[tr("Terang"), tr("Gelap")],
+                command=self.change_theme,
+                **common,
+            )
+            self.theme_selector.set(
+                tr("Gelap") if app_theme.THEME == "dark" else tr("Terang")
+            )
+            self.theme_selector.grid(
+                row=2, column=1, sticky="ew", padx=16, pady=(2, 12)
+            )
+            self.update_status = text_label(
+                settings,
+                text="v" + VERSION,
+                text_color=MUTED,
+                font=(FONT, 11),
+                wraplength=350,
+                justify="left",
+                anchor="w",
+            )
+            self.update_status.grid(row=3, column=0, sticky="ew", padx=16, pady=(0, 14))
+            self.check_update_button = self.btn(
+                settings,
+                tr("Cek update"),
+                self.manual_update_check,
+                width=170,
+                height=34,
+            )
+            self.check_update_button.grid(
+                row=3, column=1, sticky="ew", padx=16, pady=(0, 14)
+            )
+            temp = card(5, 0, tr("File sementara"))
+            text_label(
+                temp,
+                text=tr("Bersihkan file sementara. File terkunci akan dilewati."),
+                text_color=MUTED,
+                font=(FONT, 11),
+                wraplength=300,
+                justify="left",
+                anchor="w",
+            ).grid(row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 10))
+            options = dict(
+                fg_color=app_theme.color("#f1e3cc"),
+                button_color=RED,
+                button_hover_color=RED,
+                text_color=WHITE,
+                font=(FONT, 12),
+                height=34,
+            )
+            self.temp_choice = ctk.CTkOptionMenu(
+                temp, values=["User Temp", "System Temp", tr("Semua Temp")], **options
+            )
+            self.temp_choice.grid(
+                row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 10)
+            )
+            self.btn(temp, tr("Bersihkan"), self.clean, width=140, height=34).grid(
+                row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14)
+            )
+            dns = card(5, 1, tr("Jaringan DNS"))
+            self.adapter = ctk.CTkOptionMenu(
+                dns, values=[tr("Pilih adapter")], **options
+            )
+            self.adapter.grid(
+                row=1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 10)
+            )
+            self.dns_choice = ctk.CTkOptionMenu(
+                dns, values=["Default (ISP)", "Cloudflare", "Google"], **options
+            )
+            self.dns_choice.grid(
+                row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 10)
+            )
+            self.btn(
+                dns, tr("Terapkan DNS"), self.dns, primary=True, width=140, height=34
+            ).grid(row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
+
+        def poll(self):
+            while self.results:
+                kind, value = self.results.pop(0)
+                if kind == "transfer":
+                    phase, done, total, index, count, rate = value
+                    names = {
+                        "scan": tr("Memeriksa sumber"),
+                        "copy": tr("Menyalin cache"),
+                        "verify": tr("Verifikasi SHA-256"),
+                        "cleanup": tr("Menyelesaikan transfer"),
+                    }
+                    detail = (
+                        f" · {format_size(done)} / {format_size(total)}"
+                        if total
+                        else ""
+                    )
+                    speed = f" · {format_size(rate)}/s" if rate is not None else ""
+                    label = f"{index + 1}/{count} · {names[phase]}{detail}{speed}"
+                    self.transfer_panel.grid()
+                    self.transfer_label.configure(text=label)
+                    self.feedback.configure(text=label)
+                    self.transfer_progress.set(
+                        (index + (min(1, done / total) if total else 0)) / max(1, count)
+                    )
+                elif kind == "storage_stats":
+                    generation, stats = value
+                    if generation == self.size_generation and not self.busy:
+                        for key, usage in stats.items():
+                            _, label, bar = self.drive_widgets[key]
+                            if usage is None:
+                                label.configure(
+                                    text=(
+                                        tr("Tidak tersedia")
+                                        if key == "active"
+                                        else tr("HDD belum dipilih / offline")
+                                    )
+                                )
+                                bar.set(0)
+                            else:
+                                label.configure(
+                                    text=format_size(usage.free)
+                                    + " "
+                                    + tr("kosong")
+                                    + " / "
+                                    + format_size(usage.total)
+                                )
+                                bar.set(1 - usage.free / max(1, usage.total))
+                elif kind == "server_status":
+                    self.status_syncing = False
+                    self.server_statuses = value
+                    self.render_servers()
+                elif kind == "server_icons":
+                    self.server_icons.update(value)
+                    self.render_servers()
+                elif kind == "catalog":
+                    self.catalog_syncing = False
+                    self.catalog = value
+                    self.render_servers()
+                    self.refresh_server_status()
+                    self.catalog_status.configure(
+                        text=tr("Daftar tersinkron dari GitHub.")
+                    )
+                elif kind == "catalog_error":
+                    self.catalog_syncing = False
+                    self.catalog_status.configure(
+                        text=tr("Sync gagal; daftar terakhir tetap tersedia.")
+                    )
+                elif kind == "update_progress":
+                    self.set_update_status(f"{tr('Mengunduh update: ')}{value:.0%}")
+                    self.global_update_progress.grid()
+                    self.global_update_progress.set(value)
+                    self.global_update_button.grid_remove()
+                    if (
+                        hasattr(self, "download_progress")
+                        and self.download_progress.winfo_exists()
+                    ):
+                        self.download_progress.set(value)
+                        self.download_label.configure(
+                            text=f"{tr('Mengunduh update... ')}{value:.0%}"
+                        )
+                elif kind == "update_downloaded":
+                    from .auto_updater import start_replacement
+
+                    try:
+                        start_replacement(
+                            value, sys.executable, os.getpid(), os.getppid()
+                        )
+                    except Exception as exc:
+                        import shutil
+
+                        shutil.rmtree(os.path.dirname(value), ignore_errors=True)
+                        self.finish_update_error(str(exc))
+                    else:
+                        self.closed = True
+                        self.destroy()
+                        return
+                elif kind == "update_failed":
+                    self.finish_update_error(value)
+                elif kind == "update":
+                    manual, release, error = value
+                    self.update_checking = False
+                    if error:
+                        self.set_update_status(tr("Tidak dapat mengecek update."))
+                        if manual:
+                            self.show_update_notice(error=error)
+                    elif release:
+                        self.latest_release = release
+                        self.global_update_button.grid()
                         self.set_update_status(
                             tr("Update tersedia: v") + release["version"]
                         )
