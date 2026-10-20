@@ -11,7 +11,7 @@ import threading
 import ctypes
 from .storage import StorageMixin, normal
 
-VERSION = "2.9.2"
+VERSION = "2.9.3"
 APP_NAME = "GanoV-Cache-Switch"
 COPYRIGHT = "Copyright (c) 2026 GANOMABI / amiinarii"
 PREFIX = "server-cache-priv_"

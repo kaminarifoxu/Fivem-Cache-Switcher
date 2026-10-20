@@ -8,7 +8,7 @@ Pilih HDD pada drive fisik berbeda untuk mengosongkan SSD. Aplikasi tidak mendet
 
 ## Keamanan dan pemulihan
 
-Pemindahan lintas drive menyalin data, memverifikasi isi dengan SHA-256, lalu menghapus sumber. Drive tujuan membutuhkan ruang untuk seluruh cache yang dipindahkan. Cache besar membutuhkan waktu; progres penyalinan dan verifikasi ditampilkan. Jangan menjalankan FiveM atau mengubah folder cache selama proses berlangsung.
+Pemindahan lintas drive menghitung SHA-256 sambil menyalin data, membaca dan memverifikasi salinan tujuan, memeriksa perubahan metadata sumber, lalu menghapus sumber. Transfer yang dilanjutkan juga membaca checksum sumber untuk memvalidasi salinan sementara. Drive tujuan membutuhkan ruang untuk seluruh cache yang dipindahkan. Cache besar membutuhkan waktu; progres penyalinan dan verifikasi ditampilkan. Jangan menjalankan FiveM atau mengubah folder cache selama proses berlangsung.
 
 Jika HDD terlepas, ruang habis, atau aplikasi terhenti, sambungkan kembali drive atau kosongkan ruang lalu pilih **Lanjutkan pemindahan** di Peralatan. Catatan transaksi disimpan agar proses dapat diteruskan. File lengkap dalam salinan sementara diverifikasi dengan SHA-256 dan dipakai kembali; hanya file yang kurang, berubah, atau belum utuh yang disalin ulang. File besar yang terputus di tengah tetap disalin ulang dari awal file tersebut, bukan dari awal seluruh folder. Sumber tidak dihapus sebelum salinan terverifikasi. Jika transaksi belum selesai, peluncuran FiveM dari aplikasi diblokir.
 

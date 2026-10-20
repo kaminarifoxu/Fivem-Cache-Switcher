@@ -27,7 +27,11 @@ def plain_parents(path):
             raise RuntimeError("Lokasi cache tidak boleh melewati symlink/junction.")
 
 
-def inventory(path, progress=None):
+def file_stamp(value):
+    return (value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_dev, value.st_ino)
+
+
+def inventory(path, progress=None, hash_contents=True):
     """Hash ordinary files, rejecting links and mutations instead of following them."""
     plain_parents(path)
     _core().check_tree(path)
@@ -47,6 +51,9 @@ def inventory(path, progress=None):
                 raise RuntimeError(
                     "Cache berisi file khusus/link; transfer dibatalkan."
                 )
+            if not hash_contents:
+                files[os.path.relpath(full, path)] = file_stamp(before)
+                continue
             digest = hashlib.sha256()
             with open(full, "rb") as stream:
                 while chunk := stream.read(4 * 1024 * 1024):
@@ -122,8 +129,10 @@ def verified_move(source, destination, record, index, persist, progress):
         core.no_fivem()
         os.rename(source, destination)
         return
-    source_data = inventory(source, lambda n: progress("scan", n, 0))
-    total = sum(size for size, _ in source_data["files"].values())
+    # Inspect metadata first; hash fresh source bytes as they are copied.
+    source_meta = inventory(source, None, False)
+    source_data = {"files": {}, "dirs": source_meta["dirs"]}
+    total = sum(signature[0] for signature in source_meta["files"].values())
     reusable = set()
     if os.path.lexists(stage):
         if record.get("copying") != index:
@@ -132,6 +141,8 @@ def verified_move(source, destination, record, index, persist, progress):
             )
         plain_parents(stage)
         core.check_tree(stage)
+        # Recovery rehashes the source before trusting any existing staged file.
+        source_data = inventory(source, lambda n: progress("scan", n, total))
         # Reuse only matching bytes in this transaction's owned staging folder.
         staged = inventory(stage, lambda n: progress("verify", n, total))
         for relative, signature in staged["files"].items():
@@ -170,23 +181,34 @@ def verified_move(source, destination, record, index, persist, progress):
             next_process_check = time.monotonic() + 1.0
 
     progress("copy", done, total)
-    for relative in source_data["files"]:
+    for relative in source_meta["files"]:
         check_running()
         if relative in reusable:
             continue
-        with open(os.path.join(source, relative), "rb") as src, open(
+        source_file = os.path.join(source, relative)
+        if core.is_link(source_file):
+            raise RuntimeError("Cache sumber berubah menjadi link. Transfer dihentikan.")
+        digest = hashlib.sha256()
+        with open(source_file, "rb") as src, open(
             os.path.join(stage, relative), "xb"
         ) as dst:
+            before = os.fstat(src.fileno())
+            if file_stamp(before) != source_meta["files"][relative]:
+                raise RuntimeError("Cache sumber berubah. Tutup FiveM dahulu.")
             while chunk := src.read(4 * 1024 * 1024):
                 check_running()
                 dst.write(chunk)
+                digest.update(chunk)
                 done += len(chunk)
                 progress("copy", done, total)
+            if file_stamp(os.fstat(src.fileno())) != file_stamp(before):
+                raise RuntimeError("Cache sumber berubah selama penyalinan.")
+            source_data["files"][relative] = (before.st_size, digest.hexdigest())
             dst.flush()
             os.fsync(dst.fileno())
     progress("verify", 0, total)
     staged_data = inventory(stage, lambda n: progress("verify", n, total))
-    if staged_data != source_data or inventory(source) != source_data:
+    if staged_data != source_data or inventory(source, None, False) != source_meta:
         raise RuntimeError(
             "Verifikasi cache gagal; salinan asal belum dihapus. Lanjutkan transfer untuk mencoba lagi."
         )

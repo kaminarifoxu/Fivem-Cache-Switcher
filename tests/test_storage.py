@@ -142,6 +142,45 @@ class StorageTests(unittest.TestCase):
                               0, lambda: None, lambda *args: None)
         self.assertEqual((destination / "cache").read_bytes(), b"good")
 
+    def test_fresh_transfer_reads_source_contents_once(self):
+        source = self.root / "read-once"
+        destination = self.hdd / "read-once-dest"
+        source.mkdir()
+        (source / "cache").write_bytes(b"cache" * 1000)
+        original_open = open
+        reads = []
+
+        def track(path, mode="r", *args, **kwargs):
+            if mode == "rb" and str(path) == str(source / "cache"):
+                reads.append(path)
+            return original_open(path, mode, *args, **kwargs)
+
+        with patch("builtins.open", side_effect=track):
+            storage.verified_move(str(source), str(destination), {"token": "f" * 32},
+                                  0, lambda: None, lambda *args: None)
+        self.assertEqual(len(reads), 1)
+        self.assertEqual((destination / "cache").read_bytes(), b"cache" * 1000)
+
+    def test_source_content_change_after_copy_blocks_cleanup(self):
+        source = self.root / "changed-source"
+        destination = self.hdd / "changed-dest"
+        source.mkdir()
+        (source / "cache").write_bytes(b"original")
+        original_inventory = storage.inventory
+
+        def change(path, *args):
+            result = original_inventory(path, *args)
+            if ".ganov-partial-" in str(path):
+                (source / "cache").write_bytes(b"modified")
+            return result
+
+        with patch.object(storage, "inventory", side_effect=change):
+            with self.assertRaisesRegex(RuntimeError, "Verifikasi"):
+                storage.verified_move(str(source), str(destination), {"token": "1" * 32},
+                                      0, lambda: None, lambda *args: None)
+        self.assertEqual((source / "cache").read_bytes(), b"modified")
+        self.assertFalse(destination.exists())
+
     def test_enable_moves_only_inactive_cache_then_round_trip_and_disable(self):
         active_before = storage.inventory(self.store.active)
         self.enable()
