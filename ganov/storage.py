@@ -192,7 +192,9 @@ def verified_move(source, destination, record, index, persist, progress):
         with open(source_file, "rb") as src, open(
             os.path.join(stage, relative), "xb"
         ) as dst:
-            before = os.fstat(src.fileno())
+            # Use the same stat API as the initial snapshot. Windows may expose
+            # different file IDs/timestamp precision through fstat versus stat.
+            before = os.stat(source_file, follow_symlinks=False)
             if file_stamp(before) != source_meta["files"][relative]:
                 raise RuntimeError("Cache sumber berubah. Tutup FiveM dahulu.")
             while chunk := src.read(4 * 1024 * 1024):
@@ -201,7 +203,7 @@ def verified_move(source, destination, record, index, persist, progress):
                 digest.update(chunk)
                 done += len(chunk)
                 progress("copy", done, total)
-            if file_stamp(os.fstat(src.fileno())) != file_stamp(before):
+            if file_stamp(os.stat(source_file, follow_symlinks=False)) != file_stamp(before):
                 raise RuntimeError("Cache sumber berubah selama penyalinan.")
             source_data["files"][relative] = (before.st_size, digest.hexdigest())
             dst.flush()
